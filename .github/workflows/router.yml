@@ -44,6 +44,7 @@ jobs:
             test -f "$file" || { echo "Preflight: missing patch file: $file"; exit 1; }
             node --check "$file"
           done
+          node --check scripts/collect_external_sources_v1.js
           node --check bot/index.js
 
       - name: Apply Router compatibility patches
@@ -116,6 +117,11 @@ jobs:
           echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
           echo "Discord runtime configuration resolved automatically."
+
+      - name: Collect external lottery URLs
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/collect_external_sources_v1.js
 
       - name: Syntax Check
         run: node --check bot/index.js
