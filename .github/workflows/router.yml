@@ -1,0 +1,118 @@
+name: TCG Discord Router Bot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '1-59/5 * * * *'
+
+concurrency:
+  group: tcg-main-writer
+  cancel-in-progress: false
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout private Router source
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          ref: main
+          fetch-depth: 0
+
+      - name: Checkout private Router state
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+          fetch-depth: 1
+
+      - name: Restore verified Router baseline
+        run: git checkout 786de5777873c6f649933eb3a804b4b62a06b3b -- bot/index.js
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Preflight patch syntax
+        run: |
+          set -e
+          for file in $(grep -oE 'scripts/patch_[A-Za-z0-9_]+\.js' .github/workflows/route.yml | sort -u); do
+            test -f "$file" || { echo "Preflight: missing patch file: $file"; exit 1; }
+            node --check "$file"
+          done
+          node --check bot/index.js
+
+      - name: Apply Router compatibility patches
+        run: |
+          set -e
+          node scripts/patch_submission_history_v1.js
+          node scripts/patch_submission_channel_resolver_v1.js
+          node scripts/patch_public_page_fallback.js
+          node scripts/patch_livepocket_request_scope_v1.js
+          node scripts/patch_prefecture_v5.js
+          for file in \
+            scripts/patch_blocked_livepocket_search_v3.js \
+            scripts/patch_blocked_livepocket_search_v4.js \
+            scripts/patch_blocked_livepocket_search_v5.js \
+            scripts/patch_blocked_livepocket_search_v6.js \
+            scripts/patch_blocked_livepocket_search_v7.js \
+            scripts/patch_blocked_livepocket_search_v8.js \
+            scripts/patch_blocked_livepocket_search_v9.js \
+            scripts/patch_blocked_livepocket_search_v10.js \
+            scripts/patch_blocked_livepocket_search_v11.js \
+            scripts/patch_blocked_livepocket_search_v12.js; do
+            node "$file"
+          done
+          node scripts/patch_tcg_rules_v13.js
+          node scripts/patch_routing_destination_v1.js
+          node scripts/patch_reaction_cleanup.js
+          node scripts/patch_pending_expiry.js
+          node scripts/patch_pending_finalization.js
+          node scripts/patch_allurls_regression.js
+          node scripts/patch_pending_comment_priority.js
+          node scripts/patch_comment_reaction.js
+          node scripts/patch_role_panel_marker.js
+          node scripts/patch_reaction_role_speed_v1.js
+          node scripts/patch_reaction_role_speed_v2.js
+          node scripts/patch_reaction_role_speed_v3.js
+          node scripts/patch_url_capture_v2.js
+          node scripts/patch_url_reaction_v3.js
+          node scripts/patch_deadline_audit_v4.js
+          node scripts/patch_auto_source_channel_v1.js
+          node scripts/patch_auto_source_channel_v2.js
+          node scripts/patch_point_game_v2.js
+          node scripts/patch_discord_access_diagnostic_v1.js
+          node scripts/patch_discord_permission_diagnostic_v2.js
+          node scripts/patch_discord_messages_fallback_v1.js
+
+      - name: Syntax Check
+        run: node --check bot/index.js
+
+      - name: Router Bot
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CATEGORIES_JSON: ${{ secrets.DISCORD_CATEGORIES_JSON }}
+        run: node bot/index.js
+
+      - name: Save state to private data repo
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+        run: |
+          set -e
+          git -C data config user.name "github-actions[bot]"
+          git -C data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C data add -A
+          if ! git -C data diff --cached --quiet; then
+            git -C data commit -m "chore: update router state"
+            git -C data remote set-url origin "https://x-access-token:${DATA_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
+            git -C data push origin main
+          else
+            echo "No private state changes."
+          fi
