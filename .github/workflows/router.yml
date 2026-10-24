@@ -45,6 +45,7 @@ jobs:
             node --check "$file"
           done
           node --check scripts/collect_external_sources_v1.js
+          node --check scripts/test_channel_routing_completion_v1.js
           node --check bot/index.js
 
       - name: Apply Router compatibility patches
@@ -131,13 +132,18 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node bot/index.js
 
+      - name: Test channel routing completion lightbulb
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/test_channel_routing_completion_v1.js
+
       - name: Save state to private data repo
         env:
           ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
         run: |
           set -e
           git -C data config user.name "github-actions[bot]"
-          git -C data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C data config user.email "41898282+users.noreply.github.com"
           git -C data add -A
           if ! git -C data diff --cached --quiet; then
             git -C data commit -m "chore: update router state"
