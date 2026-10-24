@@ -41,6 +41,7 @@ jobs:
             node --check "$file"
           done
           node --check scripts/collect_external_sources_v1.js
+          node --check scripts/normalize_external_source_state_v1.js
           node --check scripts/test_channel_routing_completion_v1.js
           node --check bot/index.js
       - name: Apply Router compatibility patches
@@ -94,6 +95,8 @@ jobs:
           CATEGORIES_JSON=$(node -e 'const fs=require("fs"); const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8")); const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"]; const out={}; for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||""))) out[String(c.name)]=String(c.id);} const missing=wanted.filter(k=>!out[k]); if(missing.length){console.error("Missing Discord categories: "+missing.join(", ")); process.exit(1);} process.stdout.write(JSON.stringify(out));')
           echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
+      - name: Normalize external source state
+        run: node scripts/normalize_external_source_state_v1.js
       - name: Collect external lottery URLs
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
