@@ -67,7 +67,6 @@ jobs:
             scripts/patch_blocked_livepocket_search_v12.js; do
             node "$file"
           done
-          node scripts/patch_tcg_rules_v13.js
           node scripts/patch_routing_destination_v1.js
           node scripts/patch_reaction_cleanup.js
           node scripts/patch_pending_expiry.js
@@ -85,8 +84,6 @@ jobs:
           node scripts/patch_auto_source_channel_v1.js
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
-          node scripts/patch_discord_access_diagnostic_v1.js
-          node scripts/patch_discord_permission_diagnostic_v2.js
           node scripts/patch_discord_messages_fallback_v1.js
 
       - name: Resolve Discord runtime configuration
