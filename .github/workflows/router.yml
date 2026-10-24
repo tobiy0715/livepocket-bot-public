@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: tobiy0715/livepocket-bot
-          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
           ref: main
           fetch-depth: 0
 
@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: tobiy0715/livepocket-bot-data
-          token: ${{ secrets.DATA_REPO_TOKEN }}
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
           path: data
           fetch-depth: 1
 
@@ -91,19 +91,48 @@ jobs:
           node scripts/patch_discord_permission_diagnostic_v2.js
           node scripts/patch_discord_messages_fallback_v1.js
 
+      - name: Resolve Discord runtime configuration
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          set -e
+          test -n "$DISCORD_BOT_TOKEN"
+          curl -fsS \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Accept: application/json" \
+            "https://discord.com/api/v10/channels/1557256727894691891" > /tmp/submission_channel.json
+          GUILD_ID=$(node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/submission_channel.json","utf8")); if(!x.guild_id) process.exit(1); process.stdout.write(String(x.guild_id));')
+          curl -fsS \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Accept: application/json" \
+            "https://discord.com/api/v10/guilds/$GUILD_ID/channels" > /tmp/guild_channels.json
+          CATEGORIES_JSON=$(node -e '
+            const fs=require("fs");
+            const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8"));
+            const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"];
+            const out={};
+            for(const c of channels){
+              if(c && c.type===4 && wanted.includes(String(c.name||""))) out[String(c.name)]=String(c.id);
+            }
+            const missing=wanted.filter(k=>!out[k]);
+            if(missing.length){console.error("Missing Discord categories: "+missing.join(", ")); process.exit(1);}
+            process.stdout.write(JSON.stringify(out));
+          ')
+          echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
+          echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
+          echo "Discord runtime configuration resolved automatically."
+
       - name: Syntax Check
         run: node --check bot/index.js
 
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-          DISCORD_CATEGORIES_JSON: ${{ secrets.DISCORD_CATEGORIES_JSON }}
         run: node bot/index.js
 
       - name: Save state to private data repo
         env:
-          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
         run: |
           set -e
           git -C data config user.name "github-actions[bot]"
@@ -111,7 +140,7 @@ jobs:
           git -C data add -A
           if ! git -C data diff --cached --quiet; then
             git -C data commit -m "chore: update router state"
-            git -C data remote set-url origin "https://x-access-token:${DATA_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
+            git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
             git -C data push origin main
           else
             echo "No private state changes."
