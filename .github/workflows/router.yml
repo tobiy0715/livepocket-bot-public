@@ -83,6 +83,7 @@ jobs:
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
           node scripts/patch_discord_messages_fallback_v1.js
+          node scripts/patch_unified_lottery_card_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
