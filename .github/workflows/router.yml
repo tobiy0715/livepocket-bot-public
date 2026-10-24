@@ -20,7 +20,6 @@ jobs:
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
           ref: main
           fetch-depth: 0
-
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -28,15 +27,12 @@ jobs:
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
           path: data
           fetch-depth: 1
-
       - name: Restore verified Router baseline
         run: git checkout 786de5777873c6f649933eb3a804b4b62a06b3b -- bot/index.js
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Preflight patch syntax
         run: |
           set -e
@@ -47,7 +43,6 @@ jobs:
           node --check scripts/collect_external_sources_v1.js
           node --check scripts/test_channel_routing_completion_v1.js
           node --check bot/index.js
-
       - name: Apply Router compatibility patches
         run: |
           set -e
@@ -87,63 +82,39 @@ jobs:
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
           node scripts/patch_discord_messages_fallback_v1.js
-
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: |
           set -e
           test -n "$DISCORD_BOT_TOKEN"
-          curl -fsS \
-            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
-            -H "Accept: application/json" \
-            "https://discord.com/api/v10/channels/1557256727894691891" > /tmp/submission_channel.json
+          curl -fsS -H "Authorization: Bot $DISCORD_BOT_TOKEN" -H "Accept: application/json" "https://discord.com/api/v10/channels/1557256727894691891" > /tmp/submission_channel.json
           GUILD_ID=$(node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/submission_channel.json","utf8")); if(!x.guild_id) process.exit(1); process.stdout.write(String(x.guild_id));')
-          curl -fsS \
-            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
-            -H "Accept: application/json" \
-            "https://discord.com/api/v10/guilds/$GUILD_ID/channels" > /tmp/guild_channels.json
-          CATEGORIES_JSON=$(node -e '
-            const fs=require("fs");
-            const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8"));
-            const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"];
-            const out={};
-            for(const c of channels){
-              if(c && c.type===4 && wanted.includes(String(c.name||""))) out[String(c.name)]=String(c.id);
-            }
-            const missing=wanted.filter(k=>!out[k]);
-            if(missing.length){console.error("Missing Discord categories: "+missing.join(", ")); process.exit(1);}
-            process.stdout.write(JSON.stringify(out));
-          ')
+          curl -fsS -H "Authorization: Bot $DISCORD_BOT_TOKEN" -H "Accept: application/json" "https://discord.com/api/v10/guilds/$GUILD_ID/channels" > /tmp/guild_channels.json
+          CATEGORIES_JSON=$(node -e 'const fs=require("fs"); const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8")); const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"]; const out={}; for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||""))) out[String(c.name)]=String(c.id);} const missing=wanted.filter(k=>!out[k]); if(missing.length){console.error("Missing Discord categories: "+missing.join(", ")); process.exit(1);} process.stdout.write(JSON.stringify(out));')
           echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
-          echo "Discord runtime configuration resolved automatically."
-
       - name: Collect external lottery URLs
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
-
       - name: Syntax Check
         run: node --check bot/index.js
-
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node bot/index.js
-
       - name: Test channel routing completion lightbulb
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/test_channel_routing_completion_v1.js
-
       - name: Save state to private data repo
         env:
           ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
         run: |
           set -e
           git -C data config user.name "github-actions[bot]"
-          git -C data config user.email "41898282+users.noreply.github.com"
+          git -C data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C data add -A
           if ! git -C data diff --cached --quiet; then
             git -C data commit -m "chore: update router state"
