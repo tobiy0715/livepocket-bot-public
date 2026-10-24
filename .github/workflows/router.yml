@@ -20,6 +20,12 @@ jobs:
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
           ref: main
           fetch-depth: 0
+      - name: Verify private Router source revision
+        run: |
+          set -e
+          echo "Router source commit: $(git rev-parse HEAD)"
+          echo "RPG patch blob: $(git rev-parse HEAD:scripts/patch_rpg_test_v1.js)"
+          node --check scripts/patch_rpg_test_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
