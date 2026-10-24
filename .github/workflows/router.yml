@@ -82,6 +82,7 @@ jobs:
           node scripts/patch_auto_source_channel_v1.js
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
+          node scripts/patch_rpg_test_v1.js
           node scripts/patch_discord_messages_fallback_v1.js
       - name: Resolve Discord runtime configuration
         env:
@@ -97,6 +98,8 @@ jobs:
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
       - name: Normalize external source state
         run: node scripts/normalize_external_source_state_v1.js
+      - name: Apply external source details
+        run: node scripts/patch_external_source_details_v1.js
       - name: Apply external source extraction
         run: node scripts/patch_external_source_extraction_v2.js
       - name: Apply external source card format
