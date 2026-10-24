@@ -97,6 +97,8 @@ jobs:
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
       - name: Normalize external source state
         run: node scripts/normalize_external_source_state_v1.js
+      - name: Apply external source card format
+        run: node scripts/patch_external_source_card_format_v1.js
       - name: Collect external lottery URLs
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
