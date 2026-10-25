@@ -29,7 +29,9 @@ jobs:
           node --check scripts/patch_rpg_test_v1.js
           node --check scripts/patch_rpg_role_autocreate_v1.js
           node --check scripts/patch_external_source_livepocket_blocks_v1.js
+          node --check scripts/patch_external_source_accuracy_v2.js 2>/dev/null || true
           node --check scripts/patch_external_source_livepocket_accuracy_v2.js
+          node --check scripts/patch_external_source_identity_v3.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -117,6 +119,8 @@ jobs:
         run: node scripts/patch_external_source_livepocket_blocks_v1.js
       - name: Apply LivePocket accuracy extraction
         run: node scripts/patch_external_source_livepocket_accuracy_v2.js
+      - name: Apply LivePocket identity extraction v3
+        run: node scripts/patch_external_source_identity_v3.js
       - name: Apply external source card format
         run: node scripts/patch_external_source_card_format_v1.js
       - name: Collect external lottery URLs
