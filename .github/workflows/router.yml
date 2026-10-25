@@ -25,7 +25,9 @@ jobs:
           set -e
           echo "Router source commit: $(git rev-parse HEAD)"
           echo "RPG patch blob: $(git rev-parse HEAD:scripts/patch_rpg_test_v1.js)"
+          echo "RPG auto-role patch blob: $(git rev-parse HEAD:scripts/patch_rpg_role_autocreate_v1.js)"
           node --check scripts/patch_rpg_test_v1.js
+          node --check scripts/patch_rpg_role_autocreate_v1.js
           node --check scripts/patch_external_source_livepocket_blocks_v1.js
           node --check scripts/patch_external_source_livepocket_accuracy_v2.js
       - name: Checkout private Router state
@@ -91,6 +93,7 @@ jobs:
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
           node scripts/patch_rpg_test_v1.js
+          node scripts/patch_rpg_role_autocreate_v1.js
           node scripts/patch_discord_messages_fallback_v1.js
       - name: Resolve Discord runtime configuration
         env:
