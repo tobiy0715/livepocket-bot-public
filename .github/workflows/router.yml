@@ -33,6 +33,7 @@ jobs:
           node --check scripts/patch_external_source_livepocket_accuracy_v2.js
           node --check scripts/patch_external_source_identity_v3.js
           node --check scripts/patch_external_source_candidate_scope_v1.js
+          node --check scripts/patch_disable_redundant_deadline_audit_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -92,6 +93,7 @@ jobs:
           node scripts/patch_url_capture_v2.js
           node scripts/patch_url_reaction_v3.js
           node scripts/patch_deadline_audit_v4.js
+          node scripts/patch_disable_redundant_deadline_audit_v1.js
           node scripts/patch_auto_source_channel_v1.js
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
