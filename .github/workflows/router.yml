@@ -48,7 +48,7 @@ jobs:
       - name: Preflight patch syntax
         run: |
           set -e
-          for file in $(grep -oE 'scripts/patch_[A-Za-z0-9_]+\.js' .github/workflows/route.yml | sort -u); do
+          for file in $(grep -oE 'scripts/patch_[A-Za-z0-9_]+\.js' .github/workflows/router.yml | sort -u); do
             test -f "$file" || { echo "Preflight: missing patch file: $file"; exit 1; }
             node --check "$file"
           done
@@ -96,7 +96,7 @@ jobs:
           node scripts/patch_point_game_v2.js
           node scripts/patch_rpg_test_v1.js
           node scripts/patch_rpg_role_autocreate_v1.js
-          node scripts/patch_discord_messages_fallback_v1.js
+          node scripts/patch_discord_messages_fallback_v2.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
