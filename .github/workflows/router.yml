@@ -24,8 +24,6 @@ jobs:
         run: |
           set -e
           echo "Router source commit: $(git rev-parse HEAD)"
-          echo "RPG patch blob: $(git rev-parse HEAD:scripts/patch_rpg_test_v1.js)"
-          echo "RPG auto-role patch blob: $(git rev-parse HEAD:scripts/patch_rpg_role_autocreate_v1.js)"
           node --check scripts/patch_rpg_test_v1.js
           node --check scripts/patch_rpg_role_autocreate_v1.js
           node --check scripts/patch_external_source_livepocket_blocks_v1.js
@@ -34,6 +32,8 @@ jobs:
           node --check scripts/patch_external_source_identity_v3.js
           node --check scripts/patch_external_source_candidate_scope_v1.js
           node --check scripts/patch_disable_redundant_deadline_audit_v1.js
+          node --check scripts/patch_disable_redundant_deadline_audit_v3.js
+          node --check scripts/patch_livepocket_url_cleanup_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -42,7 +42,7 @@ jobs:
           path: data
           fetch-depth: 1
       - name: Restore verified Router baseline
-        run: git checkout 786de5777873c6f649933eb3a804b4b62a06b3b -- bot/index.js
+        run: git checkout 786de5777873c6f649933eb3a804b4b62a06b3b7 -- bot/index.js
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -94,6 +94,8 @@ jobs:
           node scripts/patch_url_reaction_v3.js
           node scripts/patch_deadline_audit_v4.js
           node scripts/patch_disable_redundant_deadline_audit_v1.js
+          node scripts/patch_disable_redundant_deadline_audit_v3.js
+          node scripts/patch_livepocket_url_cleanup_v1.js
           node scripts/patch_auto_source_channel_v1.js
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
@@ -125,6 +127,8 @@ jobs:
         run: node scripts/patch_external_source_livepocket_accuracy_v2.js
       - name: Apply LivePocket identity extraction v3
         run: node scripts/patch_external_source_identity_v3.js
+      - name: Apply LivePocket URL cleanup
+        run: node scripts/patch_livepocket_url_cleanup_v1.js
       - name: Apply external source card format
         run: node scripts/patch_external_source_card_format_v1.js
       - name: Apply external source candidate scope
