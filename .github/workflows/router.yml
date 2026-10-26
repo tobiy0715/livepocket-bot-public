@@ -38,6 +38,7 @@ jobs:
           node --check scripts/patch_raw_url_extraction_cleanup_v1.js
           node --check scripts/patch_trusted_structured_source_v1.js
           node --check scripts/patch_trusted_structured_source_v14.js
+          node --check scripts/patch_trusted_structured_source_v14_final.js
           node --check scripts/patch_router_pending_relax_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
@@ -112,6 +113,7 @@ jobs:
           node scripts/patch_external_source_candidate_scope_v1.js
           node scripts/patch_trusted_structured_source_v1.js
           node scripts/patch_trusted_structured_source_v14.js
+          node scripts/patch_trusted_structured_source_v14_final.js
           node scripts/patch_router_pending_relax_v1.js
       - name: Resolve Discord runtime configuration
         env:
