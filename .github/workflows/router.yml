@@ -32,6 +32,7 @@ jobs:
           node --check scripts/patch_external_source_accuracy_v2.js 2>/dev/null || true
           node --check scripts/patch_external_source_livepocket_accuracy_v2.js
           node --check scripts/patch_external_source_identity_v3.js
+          node --check scripts/patch_external_source_candidate_scope_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -97,6 +98,7 @@ jobs:
           node scripts/patch_rpg_test_v1.js
           node scripts/patch_rpg_role_autocreate_v1.js
           node scripts/patch_discord_messages_fallback_v2.js
+          node scripts/patch_external_source_candidate_scope_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -123,6 +125,8 @@ jobs:
         run: node scripts/patch_external_source_identity_v3.js
       - name: Apply external source card format
         run: node scripts/patch_external_source_card_format_v1.js
+      - name: Apply external source candidate scope
+        run: node scripts/patch_external_source_candidate_scope_v1.js
       - name: Collect external lottery URLs
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
