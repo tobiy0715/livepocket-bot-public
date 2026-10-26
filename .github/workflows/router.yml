@@ -36,6 +36,7 @@ jobs:
           node --check scripts/patch_livepocket_url_cleanup_v1.js
           node --check scripts/patch_raw_livepocket_url_cleanup_v3.js
           node --check scripts/patch_raw_url_extraction_cleanup_v1.js
+          node --check scripts/patch_router_pending_relax_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -107,6 +108,7 @@ jobs:
           node scripts/patch_rpg_role_autocreate_v1.js
           node scripts/patch_discord_messages_fallback_v2.js
           node scripts/patch_external_source_candidate_scope_v1.js
+          node scripts/patch_router_pending_relax_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
