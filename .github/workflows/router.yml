@@ -121,9 +121,33 @@ jobs:
         run: |
           set -e
           test -n "$DISCORD_BOT_TOKEN"
-          curl -fsS -H "Authorization: Bot $DISCORD_BOT_TOKEN" -H "Accept: application/json" "https://discord.com/api/v10/channels/1557256727894691891" > /tmp/submission_channel.json
+          discord_get() {
+            local url="$1"
+            local out="$2"
+            local attempt=1
+            while [ "$attempt" -le 5 ]; do
+              status=$(curl -sS -o "$out" -w "%{http_code}" -H "Authorization: Bot $DISCORD_BOT_TOKEN" -H "Accept: application/json" "$url" || true)
+              if [ "$status" = "200" ]; then
+                return 0
+              fi
+              if [ "$status" = "429" ]; then
+                retry=$(node -e 'const fs=require("fs");try{const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const n=Number(x.retry_after);process.stdout.write(String(Number.isFinite(n)?n:5));}catch{process.stdout.write("5")}' "$out")
+                echo "Discord 429; waiting ${retry}s before retry ${attempt}/5"
+                sleep "$retry"
+              else
+                echo "Discord API request failed: HTTP $status"
+                cat "$out" || true
+                return 1
+              fi
+              attempt=$((attempt+1))
+            done
+            echo "Discord API still rate-limited after 5 attempts"
+            cat "$out" || true
+            return 1
+          }
+          discord_get "https://discord.com/api/v10/channels/1557256727894691891" /tmp/submission_channel.json
           GUILD_ID=$(node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/submission_channel.json","utf8")); if(!x.guild_id) process.exit(1); process.stdout.write(String(x.guild_id));')
-          curl -fsS -H "Authorization: Bot $DISCORD_BOT_TOKEN" -H "Accept: application/json" "https://discord.com/api/v10/guilds/$GUILD_ID/channels" > /tmp/guild_channels.json
+          discord_get "https://discord.com/api/v10/guilds/$GUILD_ID/channels" /tmp/guild_channels.json
           CATEGORIES_JSON=$(node -e 'const fs=require("fs"); const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8")); const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"]; const out={}; for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||""))) out[String(c.name)]=String(c.id);} const missing=wanted.filter(k=>!out[k]); if(missing.length){console.error("Missing Discord categories: "+missing.join(", ")); process.exit(1);} process.stdout.write(JSON.stringify(out));')
           echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
