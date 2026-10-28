@@ -48,6 +48,7 @@ jobs:
           node scripts/patch_raw_url_extraction_cleanup_v1.js
           node scripts/patch_external_source_card_format_v1.js
           node scripts/patch_external_source_candidate_scope_v1.js
+          node scripts/patch_pokeso_livepocket_union_v1.js
           node --check scripts/collect_external_sources_v1.js
 
       - name: Resolve Discord runtime configuration
