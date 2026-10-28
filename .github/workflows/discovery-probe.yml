@@ -1,0 +1,26 @@
+name: Discovery Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout private Router source
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
+          ref: main
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run discovery probe
+        run: node scripts/discovery_probe_v2.js
