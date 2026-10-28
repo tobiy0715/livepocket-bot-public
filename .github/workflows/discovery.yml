@@ -1,0 +1,86 @@
+name: TCG Discovery Only
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: tcg-main-writer
+  cancel-in-progress: false
+
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout private Router source
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
+          ref: main
+          fetch-depth: 0
+
+      - name: Checkout private Router state
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot-data
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
+          path: data
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply discovery patches
+        run: |
+          set -e
+          node scripts/normalize_external_source_state_v1.js
+          node scripts/patch_external_source_details_v1.js
+          node scripts/patch_external_source_extraction_v2.js
+          node scripts/patch_external_source_livepocket_blocks_v1.js
+          node scripts/patch_external_source_livepocket_accuracy_v2.js
+          node scripts/patch_external_source_identity_v3.js
+          node scripts/patch_livepocket_url_cleanup_v1.js
+          node scripts/patch_raw_livepocket_url_cleanup_v3.js
+          node scripts/patch_raw_url_extraction_cleanup_v1.js
+          node scripts/patch_external_source_card_format_v1.js
+          node scripts/patch_external_source_candidate_scope_v1.js
+          node --check scripts/collect_external_sources_v1.js
+
+      - name: Resolve Discord runtime configuration
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          set -e
+          test -n "$DISCORD_BOT_TOKEN"
+          status=$(curl -sS -o /tmp/submission_channel.json -w "%{http_code}" \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Accept: application/json" \
+            "https://discord.com/api/v10/channels/1557256727894691891")
+          test "$status" = "200"
+          GUILD_ID=$(node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/submission_channel.json","utf8")); if(!x.guild_id) process.exit(1); process.stdout.write(String(x.guild_id));')
+          echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
+
+      - name: Collect external lottery URLs
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/collect_external_sources_v1.js
+
+      - name: Save discovery state
+        env:
+          ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
+        run: |
+          set -e
+          git -C data config user.name "github-actions[bot]"
+          git -C data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C data add -A
+          if ! git -C data diff --cached --quiet; then
+            git -C data commit -m "chore: update discovery state"
+            git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
+            git -C data push origin main
+          else
+            echo "No discovery state changes."
+          fi
