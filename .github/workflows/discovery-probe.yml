@@ -23,4 +23,4 @@ jobs:
           node-version: 20
 
       - name: Run discovery probe
-        run: node scripts/discovery_probe_v10.js
+        run: node scripts/discovery_probe_v11.js
