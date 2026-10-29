@@ -89,7 +89,8 @@ jobs:
             scripts/patch_blocked_livepocket_search_v9.js \
             scripts/patch_blocked_livepocket_search_v10.js \
             scripts/patch_blocked_livepocket_search_v11.js \
-            scripts/patch_blocked_livepocket_search_v12.js; do
+            scripts/patch_blocked_livepocket_search_v12.js \
+            scripts/patch_blocked_livepocket_search_v13.js; do
             node "$file"
           done
           node scripts/patch_routing_destination_v1.js
