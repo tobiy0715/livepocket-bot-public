@@ -43,6 +43,7 @@ jobs:
           node --check scripts/patch_google_forms_routing_v1.js
           node --check scripts/patch_livepocket_core_v1.js
           node --check scripts/patch_url_scope_v1.js
+          node --check scripts/patch_evidence_hardening_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -77,6 +78,7 @@ jobs:
           node scripts/patch_prefecture_v5.js
           node scripts/patch_livepocket_core_v1.js
           node scripts/patch_url_scope_v1.js
+          node scripts/patch_evidence_hardening_v1.js
           for file in \
             scripts/patch_blocked_livepocket_search_v3.js \
             scripts/patch_blocked_livepocket_search_v4.js \
