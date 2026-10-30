@@ -45,7 +45,6 @@ jobs:
           node --check scripts/patch_url_scope_v1.js
           node --check scripts/patch_evidence_hardening_v1.js
           node --check scripts/patch_livepocket_unified_truth_v1.js
-          node --check scripts/patch_external_source_product_authority_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -155,8 +154,6 @@ jobs:
         run: node scripts/patch_external_source_details_v1.js
       - name: Apply external source extraction
         run: node scripts/patch_external_source_extraction_v2.js
-      - name: Apply external source product authority
-        run: node scripts/patch_external_source_product_authority_v1.js
       - name: Apply LivePocket block extraction
         run: node scripts/patch_external_source_livepocket_blocks_v1.js
       - name: Apply LivePocket accuracy extraction
