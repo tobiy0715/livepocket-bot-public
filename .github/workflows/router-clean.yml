@@ -1,0 +1,243 @@
+name: TCG Discord Router Bot CLEAN
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: tcg-main-writer
+  cancel-in-progress: false
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout private Router source
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
+          ref: main
+          fetch-depth: 0
+
+      - name: Checkout private Router state
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot-data
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
+          path: data
+          fetch-depth: 1
+
+      - name: Restore verified Router baseline
+        run: git checkout 786de5777873c6f649933eb3a804b4b62a06b3b7 -- bot/index.js
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Preflight patch syntax
+        run: |
+          set -e
+          for file in \
+            scripts/patch_submission_history_v1.js \
+            scripts/patch_submission_channel_resolver_v1.js \
+            scripts/patch_public_page_fallback.js \
+            scripts/patch_livepocket_request_scope_v1.js \
+            scripts/patch_prefecture_v5.js \
+            scripts/patch_livepocket_core_v1.js \
+            scripts/patch_url_scope_v1.js \
+            scripts/patch_evidence_hardening_v1.js \
+            scripts/patch_blocked_livepocket_search_v3.js \
+            scripts/patch_blocked_livepocket_search_v4.js \
+            scripts/patch_blocked_livepocket_search_v5.js \
+            scripts/patch_blocked_livepocket_search_v6.js \
+            scripts/patch_blocked_livepocket_search_v7.js \
+            scripts/patch_blocked_livepocket_search_v8.js \
+            scripts/patch_blocked_livepocket_search_v9.js \
+            scripts/patch_blocked_livepocket_search_v10.js \
+            scripts/patch_blocked_livepocket_search_v11.js \
+            scripts/patch_blocked_livepocket_search_v12.js \
+            scripts/patch_blocked_livepocket_search_v13.js \
+            scripts/patch_livepocket_unified_truth_v1.js \
+            scripts/patch_routing_destination_v1.js \
+            scripts/patch_reaction_cleanup.js \
+            scripts/patch_pending_expiry.js \
+            scripts/patch_pending_finalization.js \
+            scripts/patch_allurls_regression.js \
+            scripts/patch_pending_comment_priority.js \
+            scripts/patch_comment_reaction.js \
+            scripts/patch_role_panel_marker.js \
+            scripts/patch_reaction_role_speed_v1.js \
+            scripts/patch_reaction_role_speed_v2.js \
+            scripts/patch_reaction_role_speed_v3.js \
+            scripts/patch_url_capture_v2.js \
+            scripts/patch_url_reaction_v3.js \
+            scripts/patch_deadline_audit_v4.js \
+            scripts/patch_disable_redundant_deadline_audit_v1.js \
+            scripts/patch_disable_redundant_deadline_audit_v3.js \
+            scripts/patch_livepocket_url_cleanup_v1.js \
+            scripts/patch_raw_livepocket_url_cleanup_v3.js \
+            scripts/patch_raw_url_extraction_cleanup_v1.js \
+            scripts/patch_auto_source_channel_v1.js \
+            scripts/patch_auto_source_channel_v2.js \
+            scripts/patch_point_game_v2.js \
+            scripts/patch_rpg_test_v1.js \
+            scripts/patch_rpg_role_autocreate_v1.js \
+            scripts/patch_discord_messages_fallback_v2.js \
+            scripts/patch_external_source_candidate_scope_v1.js \
+            scripts/patch_trusted_structured_source_v1.js \
+            scripts/patch_trusted_structured_source_v14.js \
+            scripts/patch_trusted_structured_source_v14_final.js \
+            scripts/patch_router_pending_relax_v1.js \
+            scripts/patch_google_forms_routing_v1.js; do
+            test -f "$file" || { echo "Missing patch: $file"; exit 1; }
+            node --check "$file"
+          done
+          node --check bot/index.js
+
+      - name: Apply Router core patches
+        run: |
+          set -e
+          node scripts/patch_submission_history_v1.js
+          node scripts/patch_submission_channel_resolver_v1.js
+          node scripts/patch_public_page_fallback.js
+          node scripts/patch_livepocket_request_scope_v1.js
+          node scripts/patch_prefecture_v5.js
+          node scripts/patch_livepocket_core_v1.js
+          node scripts/patch_url_scope_v1.js
+          node scripts/patch_evidence_hardening_v1.js
+          for file in \
+            scripts/patch_blocked_livepocket_search_v3.js \
+            scripts/patch_blocked_livepocket_search_v4.js \
+            scripts/patch_blocked_livepocket_search_v5.js \
+            scripts/patch_blocked_livepocket_search_v6.js \
+            scripts/patch_blocked_livepocket_search_v7.js \
+            scripts/patch_blocked_livepocket_search_v8.js \
+            scripts/patch_blocked_livepocket_search_v9.js \
+            scripts/patch_blocked_livepocket_search_v10.js \
+            scripts/patch_blocked_livepocket_search_v11.js \
+            scripts/patch_blocked_livepocket_search_v12.js \
+            scripts/patch_blocked_livepocket_search_v13.js; do
+            node "$file"
+          done
+          node scripts/patch_livepocket_unified_truth_v1.js
+
+      - name: Apply Router compatibility patches
+        run: |
+          set -e
+          node scripts/patch_routing_destination_v1.js
+          node scripts/patch_reaction_cleanup.js
+          node scripts/patch_pending_expiry.js
+          node scripts/patch_pending_finalization.js
+          node scripts/patch_allurls_regression.js
+          node scripts/patch_pending_comment_priority.js
+          node scripts/patch_comment_reaction.js
+          node scripts/patch_role_panel_marker.js
+          node scripts/patch_reaction_role_speed_v1.js
+          node scripts/patch_reaction_role_speed_v2.js
+          node scripts/patch_reaction_role_speed_v3.js
+          node scripts/patch_url_capture_v2.js
+          node scripts/patch_url_reaction_v3.js
+          node scripts/patch_deadline_audit_v4.js
+          node scripts/patch_disable_redundant_deadline_audit_v1.js
+          node scripts/patch_disable_redundant_deadline_audit_v3.js
+          node scripts/patch_livepocket_url_cleanup_v1.js
+          node scripts/patch_raw_livepocket_url_cleanup_v3.js
+          node scripts/patch_raw_url_extraction_cleanup_v1.js
+          node scripts/patch_auto_source_channel_v1.js
+          node scripts/patch_auto_source_channel_v2.js
+          node scripts/patch_point_game_v2.js
+          node scripts/patch_rpg_test_v1.js
+          node scripts/patch_rpg_role_autocreate_v1.js
+          node scripts/patch_discord_messages_fallback_v2.js
+          node scripts/patch_external_source_candidate_scope_v1.js
+          node scripts/patch_trusted_structured_source_v1.js
+          node scripts/patch_trusted_structured_source_v14.js
+          node scripts/patch_trusted_structured_source_v14_final.js
+          node scripts/patch_router_pending_relax_v1.js
+          node scripts/patch_google_forms_routing_v1.js
+          node --check bot/index.js
+
+      - name: Resolve Discord runtime configuration
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          set -e
+          test -n "$DISCORD_BOT_TOKEN"
+          discord_get() {
+            local url="$1"; local out="$2"; local attempt=1
+            while [ "$attempt" -le 5 ]; do
+              status=$(curl -sS -o "$out" -w "%{http_code}" -H "Authorization: Bot $DISCORD_BOT_TOKEN" -H "Accept: application/json" "$url" || true)
+              if [ "$status" = "200" ]; then return 0; fi
+              if [ "$status" = "429" ]; then
+                retry=$(node -e 'const fs=require("fs");try{const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const n=Number(x.retry_after);process.stdout.write(String(Number.isFinite(n)?n:5));}catch{process.stdout.write("5")}' "$out")
+                sleep "$retry"
+              else
+                cat "$out" || true; return 1
+              fi
+              attempt=$((attempt+1))
+            done
+            cat "$out" || true; return 1
+          }
+          discord_get "https://discord.com/api/v10/channels/1557256727894691891" /tmp/submission_channel.json
+          GUILD_ID=$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/submission_channel.json","utf8"));if(!x.guild_id)process.exit(1);process.stdout.write(String(x.guild_id));')
+          discord_get "https://discord.com/api/v10/guilds/$GUILD_ID/channels" /tmp/guild_channels.json
+          CATEGORIES_JSON=$(node -e 'const fs=require("fs");const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8"));const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"];const out={};for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||"")))out[String(c.name)]=String(c.id);}const missing=wanted.filter(k=>!out[k]);if(missing.length)process.exit(1);process.stdout.write(JSON.stringify(out));')
+          echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
+          echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
+
+      - name: Normalize external source state
+        run: node scripts/normalize_external_source_state_v1.js
+      - name: Apply external source details
+        run: node scripts/patch_external_source_details_v1.js
+      - name: Apply external source extraction
+        run: node scripts/patch_external_source_extraction_v2.js
+      - name: Apply LivePocket block extraction
+        run: node scripts/patch_external_source_livepocket_blocks_v1.js
+      - name: Apply LivePocket accuracy extraction
+        run: node scripts/patch_external_source_livepocket_accuracy_v2.js
+      - name: Apply LivePocket identity extraction v3
+        run: node scripts/patch_external_source_identity_v3.js
+      - name: Apply LivePocket URL cleanup
+        run: node scripts/patch_livepocket_url_cleanup_v1.js
+      - name: Apply raw LivePocket URL cleanup
+        run: node scripts/patch_raw_livepocket_url_cleanup_v3.js
+      - name: Apply raw URL extraction cleanup
+        run: node scripts/patch_raw_url_extraction_cleanup_v1.js
+      - name: Apply external source card format
+        run: node scripts/patch_external_source_card_format_v1.js
+      - name: Apply external source candidate scope
+        run: node scripts/patch_external_source_candidate_scope_v1.js
+      - name: Collect external lottery URLs
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/collect_external_sources_v1.js
+
+      - name: Router Bot
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx,63x1l
+        run: node bot/index.js
+
+      - name: Test channel routing completion lightbulb
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/test_channel_routing_completion_v1.js
+
+      - name: Save state to private data repo
+        env:
+          ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
+        run: |
+          set -e
+          git -C data config user.name "github-actions[bot]"
+          git -C data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C data add -A
+          if ! git -C data diff --cached --quiet; then
+            git -C data commit -m "chore: update router state"
+            git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
+            git -C data push origin main
+          else
+            echo "No private state changes."
+          fi
