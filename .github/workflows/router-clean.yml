@@ -20,7 +20,6 @@ jobs:
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
           ref: main
           fetch-depth: 0
-
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -28,15 +27,12 @@ jobs:
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
           path: data
           fetch-depth: 1
-
       - name: Restore verified Router baseline
         run: git checkout 786de5777873c6f649933eb3a804b4b62a06b3b7 -- bot/index.js
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Preflight patch syntax
         run: |
           set -e
@@ -92,11 +88,10 @@ jobs:
             scripts/patch_trusted_structured_source_v14_final.js \
             scripts/patch_router_pending_relax_v1.js \
             scripts/patch_google_forms_routing_v1.js; do
-            test -f "$file" || { echo "Missing patch: $file"; exit 1; }
+            test -f "$file" || exit 1
             node --check "$file"
           done
           node --check bot/index.js
-
       - name: Apply Router core patches
         run: |
           set -e
@@ -122,8 +117,6 @@ jobs:
             scripts/patch_blocked_livepocket_search_v13.js; do
             node "$file"
           done
-          node scripts/patch_livepocket_unified_truth_v1.js
-
       - name: Apply Router compatibility patches
         run: |
           set -e
@@ -158,8 +151,8 @@ jobs:
           node scripts/patch_trusted_structured_source_v14_final.js
           node scripts/patch_router_pending_relax_v1.js
           node scripts/patch_google_forms_routing_v1.js
+          node scripts/patch_livepocket_unified_truth_v1.js
           node --check bot/index.js
-
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -174,9 +167,7 @@ jobs:
               if [ "$status" = "429" ]; then
                 retry=$(node -e 'const fs=require("fs");try{const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const n=Number(x.retry_after);process.stdout.write(String(Number.isFinite(n)?n:5));}catch{process.stdout.write("5")}' "$out")
                 sleep "$retry"
-              else
-                cat "$out" || true; return 1
-              fi
+              else cat "$out" || true; return 1; fi
               attempt=$((attempt+1))
             done
             cat "$out" || true; return 1
@@ -184,10 +175,9 @@ jobs:
           discord_get "https://discord.com/api/v10/channels/1557256727894691891" /tmp/submission_channel.json
           GUILD_ID=$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/submission_channel.json","utf8"));if(!x.guild_id)process.exit(1);process.stdout.write(String(x.guild_id));')
           discord_get "https://discord.com/api/v10/guilds/$GUILD_ID/channels" /tmp/guild_channels.json
-          CATEGORIES_JSON=$(node -e 'const fs=require("fs");const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8"));const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"];const out={};for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||"")))out[String(c.name)]=String(c.id);}const missing=wanted.filter(k=>!out[k]);if(missing.length)process.exit(1);process.stdout.write(JSON.stringify(out));')
+          CATEGORIES_JSON=$(node -e 'const fs=require("fs");const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8"));const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"];const out={};for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||"")))out[String(c.name)]=String(c.id);}if(wanted.some(k=>!out[k]))process.exit(1);process.stdout.write(JSON.stringify(out));')
           echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
-
       - name: Normalize external source state
         run: node scripts/normalize_external_source_state_v1.js
       - name: Apply external source details
@@ -214,18 +204,15 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
-
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx,63x1l
         run: node bot/index.js
-
       - name: Test channel routing completion lightbulb
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/test_channel_routing_completion_v1.js
-
       - name: Save state to private data repo
         env:
           ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
@@ -238,6 +225,4 @@ jobs:
             git -C data commit -m "chore: update router state"
             git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
             git -C data push origin main
-          else
-            echo "No private state changes."
-          fi
+          else echo "No private state changes."; fi
