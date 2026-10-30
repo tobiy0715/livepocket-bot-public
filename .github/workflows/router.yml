@@ -44,6 +44,9 @@ jobs:
           node --check scripts/patch_livepocket_core_v1.js
           node --check scripts/patch_url_scope_v1.js
           node --check scripts/patch_evidence_hardening_v1.js
+          node --check scripts/patch_blocked_livepocket_search_v14.js
+          node --check scripts/patch_blocked_livepocket_search_v15.js
+          node --check scripts/patch_blocked_livepocket_search_v16.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -90,7 +93,10 @@ jobs:
             scripts/patch_blocked_livepocket_search_v10.js \
             scripts/patch_blocked_livepocket_search_v11.js \
             scripts/patch_blocked_livepocket_search_v12.js \
-            scripts/patch_blocked_livepocket_search_v13.js; do
+            scripts/patch_blocked_livepocket_search_v13.js \
+            scripts/patch_blocked_livepocket_search_v14.js \
+            scripts/patch_blocked_livepocket_search_v15.js \
+            scripts/patch_blocked_livepocket_search_v16.js; do
             node "$file"
           done
           node scripts/patch_routing_destination_v1.js
@@ -191,7 +197,7 @@ jobs:
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx
+          ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx,63x1l
         run: node bot/index.js
       - name: Test channel routing completion lightbulb
         env:
