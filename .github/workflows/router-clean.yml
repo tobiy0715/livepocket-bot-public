@@ -75,8 +75,7 @@ jobs:
             scripts/patch_trusted_structured_source_v1.js \
             scripts/patch_trusted_structured_source_v14.js \
             scripts/patch_trusted_structured_source_v14_final.js \
-            scripts/patch_router_pending_relax_v1.js \
-            scripts/patch_google_forms_routing_v1.js; do
+            scripts/patch_router_pending_relax_v1.js; do
             test -f "$file" || exit 1
             node --check "$file"
           done
@@ -126,7 +125,6 @@ jobs:
           node scripts/patch_trusted_structured_source_v14.js
           node scripts/patch_trusted_structured_source_v14_final.js
           node scripts/patch_router_pending_relax_v1.js
-          node scripts/patch_google_forms_routing_v1.js
           node --check bot/index.js
       - name: Resolve Discord runtime configuration
         env:
