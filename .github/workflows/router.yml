@@ -48,6 +48,7 @@ jobs:
           node --check scripts/patch_blocked_livepocket_search_v15.js
           node --check scripts/patch_blocked_livepocket_search_v16.js
           node --check scripts/patch_blocked_livepocket_search_v17.js
+          node --check scripts/patch_blocked_livepocket_search_v18.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -98,7 +99,8 @@ jobs:
             scripts/patch_blocked_livepocket_search_v14.js \
             scripts/patch_blocked_livepocket_search_v15.js \
             scripts/patch_blocked_livepocket_search_v16.js \
-            scripts/patch_blocked_livepocket_search_v17.js; do
+            scripts/patch_blocked_livepocket_search_v17.js \
+            scripts/patch_blocked_livepocket_search_v18.js; do
             node "$file"
           done
           node scripts/patch_routing_destination_v1.js
