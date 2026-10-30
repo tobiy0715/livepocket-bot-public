@@ -51,6 +51,7 @@ jobs:
           node --check scripts/patch_blocked_livepocket_search_v18.js
           node --check scripts/patch_blocked_livepocket_search_v19.js
           node --check scripts/patch_livepocket_identity_guard_v20.js
+          node --check scripts/patch_livepocket_fallback_scope_v22.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -138,6 +139,7 @@ jobs:
           node scripts/patch_trusted_structured_source_v14_final.js
           node scripts/patch_router_pending_relax_v1.js
           node scripts/patch_google_forms_routing_v1.js
+          node scripts/patch_livepocket_fallback_scope_v22.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
