@@ -44,14 +44,7 @@ jobs:
           node --check scripts/patch_livepocket_core_v1.js
           node --check scripts/patch_url_scope_v1.js
           node --check scripts/patch_evidence_hardening_v1.js
-          node --check scripts/patch_blocked_livepocket_search_v14.js
-          node --check scripts/patch_blocked_livepocket_search_v15.js
-          node --check scripts/patch_blocked_livepocket_search_v16.js
-          node --check scripts/patch_blocked_livepocket_search_v17.js
-          node --check scripts/patch_blocked_livepocket_search_v18.js
-          node --check scripts/patch_blocked_livepocket_search_v19.js
-          node --check scripts/patch_livepocket_identity_guard_v20.js
-          node --check scripts/patch_livepocket_fallback_scope_v22.js
+          node --check scripts/patch_livepocket_unified_truth_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -87,27 +80,6 @@ jobs:
           node scripts/patch_livepocket_core_v1.js
           node scripts/patch_url_scope_v1.js
           node scripts/patch_evidence_hardening_v1.js
-          for file in \
-            scripts/patch_blocked_livepocket_search_v3.js \
-            scripts/patch_blocked_livepocket_search_v4.js \
-            scripts/patch_blocked_livepocket_search_v5.js \
-            scripts/patch_blocked_livepocket_search_v6.js \
-            scripts/patch_blocked_livepocket_search_v7.js \
-            scripts/patch_blocked_livepocket_search_v8.js \
-            scripts/patch_blocked_livepocket_search_v9.js \
-            scripts/patch_blocked_livepocket_search_v10.js \
-            scripts/patch_blocked_livepocket_search_v11.js \
-            scripts/patch_blocked_livepocket_search_v12.js \
-            scripts/patch_blocked_livepocket_search_v13.js \
-            scripts/patch_blocked_livepocket_search_v14.js \
-            scripts/patch_blocked_livepocket_search_v15.js \
-            scripts/patch_blocked_livepocket_search_v16.js \
-            scripts/patch_blocked_livepocket_search_v17.js \
-            scripts/patch_blocked_livepocket_search_v18.js \
-            scripts/patch_blocked_livepocket_search_v19.js \
-            scripts/patch_livepocket_identity_guard_v20.js; do
-            node "$file"
-          done
           node scripts/patch_routing_destination_v1.js
           node scripts/patch_reaction_cleanup.js
           node scripts/patch_pending_expiry.js
@@ -139,7 +111,7 @@ jobs:
           node scripts/patch_trusted_structured_source_v14_final.js
           node scripts/patch_router_pending_relax_v1.js
           node scripts/patch_google_forms_routing_v1.js
-          node scripts/patch_livepocket_fallback_scope_v22.js
+          node scripts/patch_livepocket_unified_truth_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
