@@ -71,14 +71,13 @@ jobs:
             scripts/patch_rpg_test_v1.js \
             scripts/patch_rpg_role_autocreate_v1.js \
             scripts/patch_discord_messages_fallback_v2.js \
-            scripts/patch_external_source_candidate_scope_v1.js \
-            scripts/patch_trusted_structured_source_v1.js \
-            scripts/patch_trusted_structured_source_v14.js \
-            scripts/patch_trusted_structured_source_v14_final.js \
-            scripts/patch_router_pending_relax_v1.js; do
+            scripts/patch_router_pending_relax_v1.js \
+            scripts/patch_livepocket_authority_root_v1.js; do
             test -f "$file" || exit 1
             node --check "$file"
           done
+          test -f scripts/livepocket_authority_root_v1.inc.js
+          node --check scripts/livepocket_authority_root_v1.inc.js
           node --check bot/index.js
       - name: Apply Router core patches
         run: |
@@ -120,11 +119,11 @@ jobs:
           node scripts/patch_rpg_test_v1.js
           node scripts/patch_rpg_role_autocreate_v1.js
           node scripts/patch_discord_messages_fallback_v2.js
-          node scripts/patch_external_source_candidate_scope_v1.js
-          node scripts/patch_trusted_structured_source_v1.js
-          node scripts/patch_trusted_structured_source_v14.js
-          node scripts/patch_trusted_structured_source_v14_final.js
           node scripts/patch_router_pending_relax_v1.js
+      - name: Apply LivePocket root authority
+        run: |
+          set -e
+          node scripts/patch_livepocket_authority_root_v1.js
           node --check bot/index.js
       - name: Resolve Discord runtime configuration
         env:
@@ -151,32 +150,6 @@ jobs:
           CATEGORIES_JSON=$(node -e 'const fs=require("fs");const channels=JSON.parse(fs.readFileSync("/tmp/guild_channels.json","utf8"));const wanted=["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄","全国"];const out={};for(const c of channels){if(c&&c.type===4&&wanted.includes(String(c.name||"")))out[String(c.name)]=String(c.id);}if(wanted.some(k=>!out[k]))process.exit(1);process.stdout.write(JSON.stringify(out));')
           echo "DISCORD_GUILD_ID=$GUILD_ID" >> "$GITHUB_ENV"
           echo "DISCORD_CATEGORIES_JSON=$CATEGORIES_JSON" >> "$GITHUB_ENV"
-      - name: Normalize external source state
-        run: node scripts/normalize_external_source_state_v1.js
-      - name: Apply external source details
-        run: node scripts/patch_external_source_details_v1.js
-      - name: Apply external source extraction
-        run: node scripts/patch_external_source_extraction_v2.js
-      - name: Apply LivePocket block extraction
-        run: node scripts/patch_external_source_livepocket_blocks_v1.js
-      - name: Apply LivePocket accuracy extraction
-        run: node scripts/patch_external_source_livepocket_accuracy_v2.js
-      - name: Apply LivePocket identity extraction v3
-        run: node scripts/patch_external_source_identity_v3.js
-      - name: Apply LivePocket URL cleanup
-        run: node scripts/patch_livepocket_url_cleanup_v1.js
-      - name: Apply raw LivePocket URL cleanup
-        run: node scripts/patch_raw_livepocket_url_cleanup_v3.js
-      - name: Apply raw URL extraction cleanup
-        run: node scripts/patch_raw_url_extraction_cleanup_v1.js
-      - name: Apply external source card format
-        run: node scripts/patch_external_source_card_format_v1.js
-      - name: Apply external source candidate scope
-        run: node scripts/patch_external_source_candidate_scope_v1.js
-      - name: Collect external lottery URLs
-        env:
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-        run: node scripts/collect_external_sources_v1.js
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
