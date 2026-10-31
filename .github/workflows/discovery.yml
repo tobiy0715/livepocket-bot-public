@@ -49,6 +49,7 @@ jobs:
           node scripts/patch_external_source_card_format_v1.js
           node scripts/patch_external_source_candidate_scope_v1.js
           node scripts/patch_discovery_livepocket_indexed_fallback_v1.js
+          node scripts/patch_discovery_exact_result_scope_v1.js
           node scripts/patch_discovery_classifier_authority.js
           node scripts/patch_discovery_tcg_alias_v1.js
           node scripts/patch_discovery_product_quality_v1.js
