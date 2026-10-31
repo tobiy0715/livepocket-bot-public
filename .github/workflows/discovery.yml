@@ -49,6 +49,7 @@ jobs:
           node scripts/patch_external_source_card_format_v1.js
           node scripts/patch_external_source_candidate_scope_v1.js
           node scripts/patch_discovery_livepocket_indexed_fallback_v1.js
+          node scripts/patch_discovery_discord_429_retry_v1.js
           node scripts/patch_external_source_validation_diagnostics_v1.js
           node --check scripts/collect_external_sources_v1.js
 
