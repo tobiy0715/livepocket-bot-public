@@ -1,0 +1,31 @@
+name: Experimental LivePocket Acquisition V2
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'TCG search query'
+        required: true
+        default: 'ポケモンカード 抽選'
+  schedule:
+    - cron: '17 */6 * * *'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check
+        run: node --check scripts/experimental_livepocket_acquisition_v2.js
+
+      - name: Run acquisition V2
+        env:
+          SEARCH_QUERY: ${{ inputs.query || 'ポケモンカード 抽選' }}
+        run: node scripts/experimental_livepocket_acquisition_v2.js
