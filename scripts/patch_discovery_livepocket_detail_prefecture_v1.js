@@ -3,7 +3,7 @@ const path = require('path');
 
 const target = path.join(process.cwd(), 'scripts', 'collect_external_sources_v1.js');
 let src = fs.readFileSync(target, 'utf8');
-const marker = 'DISCOVERY_LIVEPOCKET_DETAIL_PREFECTURE_V7';
+const marker = 'DISCOVERY_LIVEPOCKET_DETAIL_PREFECTURE_V8';
 if (src.includes(marker)) process.exit(0);
 
 const fnStart = src.indexOf('async function validateLivePocketEvent');
@@ -49,18 +49,30 @@ const injection = `
     console.log('[LivePocketDetail] prefecture=' + (resolvedPref || '都道府県確認中') + ' source=' + (detailResolved[0] ? detailResolved[1] : (resolvedPref ? 'fallback' : 'none')) + ' url=' + url);
 `;
 
-// Do not depend on validated-basic, title formatting, or an exact old expression.
-// Find the prefecture property inside validateLivePocketEvent and replace only its value.
-const prefRe = /\bprefecture\s*:\s*[^,\n}]+/;
-const prefMatch = prefRe.exec(fn);
-if (!prefMatch) throw new Error(marker + ': prefecture field not found');
-const prefPos = prefMatch.index;
+// The earlier patch versions assumed a literal prefecture property. Later
+// validation patches may transform the return object, so locate the actual
+// result return and inject the field when it is absent.
+const returnPos = fn.lastIndexOf('return {');
+if (returnPos < 0) throw new Error(marker + ': result return object not found');
 
-// The result object's return is the last return token before the prefecture property.
-const returnPos = fn.lastIndexOf('return', prefPos);
-if (returnPos < 0) throw new Error(marker + ': result return not found');
+const objectEnd = fn.indexOf('};', returnPos);
+if (objectEnd < 0) throw new Error(marker + ': result return object end not found');
+const resultObject = fn.slice(returnPos, objectEnd + 2);
+const hasPrefecture = /\bprefecture\s*:/.test(resultObject);
 
-fn = fn.slice(0, prefPos) + "prefecture:resolvedPref || '都道府県確認中'" + fn.slice(prefPos + prefMatch[0].length);
+let patchedObject = resultObject;
+if (hasPrefecture) {
+  patchedObject = resultObject.replace(/\bprefecture\s*:\s*[^,\n}]+/, "prefecture:resolvedPref || '都道府県確認中'");
+  if (patchedObject === resultObject) throw new Error(marker + ': prefecture property could not be replaced');
+} else {
+  const close = patchedObject.lastIndexOf('}');
+  if (close < 0) throw new Error(marker + ': result object closing brace not found');
+  const beforeClose = patchedObject.slice(0, close).replace(/\s+$/, '');
+  const needsComma = beforeClose.endsWith(',') ? '' : ',';
+  patchedObject = beforeClose + needsComma + "prefecture:resolvedPref || '都道府県確認中'" + patchedObject.slice(close);
+}
+
+fn = fn.slice(0, returnPos) + patchedObject + fn.slice(objectEnd + 2);
 fn = fn.slice(0, returnPos) + injection + fn.slice(returnPos);
 
 src = src.slice(0, fnStart) + fn + src.slice(fnEnd);
