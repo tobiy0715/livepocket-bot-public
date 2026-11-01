@@ -7,6 +7,8 @@ on:
       - 'scripts/experimental_livepocket_tabs_v1.js'
       - 'scripts/livepocket_browser_bridge_v1.js'
       - 'scripts/test_livepocket_browser_bridge_v1.js'
+      - 'scripts/livepocket_safari_capture_v1.js'
+      - 'scripts/test_livepocket_safari_capture_v1.js'
       - '.github/workflows/experimental-livepocket-tabs.yml'
 
 jobs:
@@ -24,8 +26,12 @@ jobs:
           node --check scripts/experimental_livepocket_tabs_v1.js
           node --check scripts/livepocket_browser_bridge_v1.js
           node --check scripts/test_livepocket_browser_bridge_v1.js
+          node --check scripts/livepocket_safari_capture_v1.js
+          node --check scripts/test_livepocket_safari_capture_v1.js
       - name: Browser bridge contract test
         run: node scripts/test_livepocket_browser_bridge_v1.js
+      - name: Safari capture fixture test
+        run: node scripts/test_livepocket_safari_capture_v1.js
       - name: Direct LivePocket acquisition diagnostic
         run: |
           set -euxo pipefail
