@@ -54,6 +54,7 @@ jobs:
           node scripts/patch_discovery_tcg_alias_v1.js
           node scripts/patch_discovery_product_quality_v1.js
           node scripts/patch_discovery_tcg_unknown_recovery_v1.js
+          node scripts/patch_discovery_db_recheck_v1.js
           node scripts/patch_discovery_discord_429_retry_v1.js
           node scripts/patch_external_source_validation_diagnostics_v1.js
           node --check scripts/collect_external_sources_v1.js
