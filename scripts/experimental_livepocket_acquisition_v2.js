@@ -17,8 +17,7 @@ function get(url, redirects = 0) {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'ja,en;q=0.8',
         'Accept-Encoding': 'identity',
-        'Cache-Control': 'no-cache',
-        'User-Agent': 'Mozilla/5.0'
+        'Cache-Control': 'no-cache'
       }
     }, res => {
       if ([301,302,303,307,308].includes(res.statusCode) && res.headers.location) {
@@ -116,12 +115,77 @@ function extractLinks(html) {
   return [...out];
 }
 
+function extractCandidateContexts(html) {
+  const src = String(html || '');
+  const decoded = decodeRepeated(src);
+  const rows = [];
+  const seen = new Set();
+  const hrefRe = /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<\/a>/gi;
+  let m;
+
+  while ((m = hrefRe.exec(src))) {
+    const url = normalizeLivePocket(m[1]);
+    if (!url) continue;
+    const start = m.index;
+    const next = hrefRe.lastIndex;
+    const rawContext = src.slice(start, Math.min(src.length, next + 2800));
+    const context = strip(decodeRepeated(rawContext));
+    if (!context) continue;
+    const key = `${url}|${context.slice(0, 1200)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push({ url, context });
+  }
+
+  const directRe = /https?:\/\/(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
+  while ((m = directRe.exec(decoded))) {
+    const url = `https://livepocket.jp/e/${m[1]}`;
+    const context = strip(decoded.slice(Math.max(0, m.index - 1200), Math.min(decoded.length, m.index + 3200)));
+    const key = `${url}|${context.slice(0, 1200)}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      rows.push({ url, context });
+    }
+  }
+
+  return rows;
+}
+
+function cleanResultContext(text, query) {
+  let s = String(text || '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/site:livepocket\.jp\/e\//gi, ' ');
+  s = s.replace(/「[^」]{0,120}」の検索結果[^。]{0,500}/g, ' ');
+  s = s.replace(/検索結果ページについて[^。]{0,300}/g, ' ');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
 function extractProduct(text) {
   const s = String(text || '').replace(/\s+/g, ' ').trim();
-  const m = s.match(/(?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール(?:カード)?|遊戯王(?:カード|OCG|ラッシュデュエル)?)[^|｜\n]{0,180}/i);
-  return m ? m[0].trim() : '';
+  const patterns = [
+    /((?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール(?:カード)?|遊戯王(?:カード|OCG|ラッシュデュエル)?)[^。]{0,180}?)(?:のチケット情報|のチケット情報・予約|抽選販売受付|抽選受付|抽選販売)/i,
+    /((?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール(?:カード)?|遊戯王(?:カード|OCG|ラッシュデュエル)?)[^。]{0,160})/i
+  ];
+  for (const re of patterns) {
+    const m = s.match(re);
+    if (m && m[1]) return m[1].trim().replace(/[\s]+/g, ' ');
+  }
+  return '';
 }
-function extractPrefecture(text) { return PREFECTURES.find(p => String(text || '').includes(p)) || ''; }
+
+function extractPrefecture(text, query) {
+  const s = String(text || '');
+  const queryPref = PREFECTURES.find(p => String(query || '').includes(p));
+  const hits = PREFECTURES.filter(p => s.includes(p));
+  if (!hits.length) return '';
+  if (hits.length === 1) return hits[0];
+  if (queryPref && hits.includes(queryPref)) {
+    const withoutQuery = s.replace(new RegExp(queryPref, 'g'), '');
+    const other = PREFECTURES.find(p => withoutQuery.includes(p));
+    if (other) return other;
+  }
+  return hits[0];
+}
+
 function isTcg(text) { return TCG_RULES.some(r => r.test(String(text || ''))); }
 
 function googleUrls(query) {
@@ -135,15 +199,20 @@ function bingUrls(query) {
 function yahooUrl(query) { return `https://search.yahoo.co.jp/search?p=${encodeURIComponent(`site:livepocket.jp/e/ ${query}`)}&n=20`; }
 
 function parseSearch(html, engine, query) {
-  const clean = strip(html);
-  return extractLinks(html).slice(0, 20).map(url => ({ engine, query, url, text: clean.slice(0, 6000) }));
+  const contexts = extractCandidateContexts(html);
+  if (contexts.length) {
+    return contexts.slice(0, 30).map(x => ({ engine, query, url: x.url, text: cleanResultContext(x.context, query) }));
+  }
+  return extractLinks(html).slice(0, 20).map(url => ({ engine, query, url, text: '' }));
 }
+
 async function searchOne(engine, url, query) {
   const r = await get(url);
   console.log(`[SEARCH] engine=${engine} query=${JSON.stringify(query)} status=${r.status} chars=${r.body.length}`);
   if (r.status !== 200) return [];
   return parseSearch(r.body, engine, query);
 }
+
 async function search(engine, query) {
   const urls = engine === 'google' ? googleUrls(query) : engine === 'bing' ? bingUrls(query) : [yahooUrl(query)];
   for (const url of urls) {
@@ -167,15 +236,17 @@ async function main() {
   for (const item of all) {
     const url = normalizeLivePocket(item.url);
     if (!url) continue;
-    const existing = map.get(url);
-    map.set(url, { url, text: existing ? `${existing.text} ${item.text}` : item.text });
+    const existing = map.get(url) || { url, contexts: [] };
+    if (item.text) existing.contexts.push(item.text);
+    map.set(url, existing);
   }
 
   const rows = [...map.values()].map(item => {
-    const product = extractProduct(item.text);
-    const prefecture = extractPrefecture(item.text);
-    const tcg = isTcg(item.text);
-    return { url: item.url, product, prefecture, tcg, complete: !!(product && prefecture && tcg), evidence: item.text.slice(0, 500) };
+    const text = item.contexts.join(' | ');
+    const product = extractProduct(text);
+    const prefecture = extractPrefecture(text, item.contexts.join(' '));
+    const tcg = isTcg(text);
+    return { url: item.url, product, prefecture, tcg, complete: !!(product && prefecture && tcg), evidence: text.slice(0, 700) };
   });
   const tcgRows = rows.filter(r => r.tcg);
   const complete = tcgRows.filter(r => r.complete);
