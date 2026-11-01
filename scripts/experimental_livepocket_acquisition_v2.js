@@ -34,14 +34,44 @@ function get(url, redirects = 0) {
   });
 }
 
-function decode(s) {
+function decodeHtml(s) {
   return String(s || '')
-    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/&#x27;/gi, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#x2f;/gi, '/')
+    .replace(/&#47;/gi, '/')
+    .replace(/&#x3a;/gi, ':')
+    .replace(/&#58;/gi, ':');
+}
+
+function decodeRepeated(s) {
+  let out = decodeHtml(String(s || ''))
+    .replace(/\\\//g, '/')
+    .replace(/\\u002f/gi, '/')
+    .replace(/\\u003a/gi, ':')
+    .replace(/\\u0026/gi, '&');
+
+  for (let i = 0; i < 4; i++) {
+    let next = decodeHtml(out)
+      .replace(/\\\//g, '/')
+      .replace(/\\u002f/gi, '/')
+      .replace(/\\u003a/gi, ':')
+      .replace(/\\u0026/gi, '&');
+    try {
+      next = decodeURIComponent(next);
+    } catch {}
+    if (next === out) break;
+    out = next;
+  }
+  return out;
 }
 
 function strip(s) {
-  return decode(String(s || '')
+  return decodeHtml(String(s || '')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
@@ -49,26 +79,64 @@ function strip(s) {
 }
 
 function normalizeLivePocket(raw) {
+  const decoded = decodeRepeated(raw).trim();
   try {
-    const u = new URL(String(raw).trim());
+    const u = new URL(decoded);
     if (u.protocol !== 'https:' || u.hostname.toLowerCase() !== 'livepocket.jp') return '';
-    if (!/^\/e\/[A-Za-z0-9_-]+$/.test(u.pathname)) return '';
-    return `https://livepocket.jp${u.pathname}`;
+    if (!/^\/e\/[A-Za-z0-9_-]+\/?$/.test(u.pathname)) return '';
+    const id = u.pathname.split('/')[2];
+    return `https://livepocket.jp/e/${id}`;
   } catch { return ''; }
 }
 
 function extractLinks(html) {
-  const out = [];
   const src = String(html || '');
-  const re = /https?:\\?\/\\?\/livepocket\.jp\\?\/e\\?\/([A-Za-z0-9_-]+)/gi;
-  let m;
-  while ((m = re.exec(src))) out.push(`https://livepocket.jp/e/${m[1]}`);
-  const href = /href=["']([^"']+)["']/gi;
-  while ((m = href.exec(src))) {
-    const u = normalizeLivePocket(m[1]);
-    if (u) out.push(u);
+  const decoded = decodeRepeated(src);
+  const out = new Set();
+  let rawMatches = 0;
+  let decodedMatches = 0;
+  let hrefMatches = 0;
+
+  const addFromText = (text, counterName) => {
+    const s = decodeRepeated(text);
+    const re = /https?:\/\/(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
+    let m;
+    while ((m = re.exec(s))) {
+      const url = normalizeLivePocket(`https://livepocket.jp/e/${m[1]}`);
+      if (url) {
+        out.add(url);
+        if (counterName === 'raw') rawMatches++;
+        if (counterName === 'decoded') decodedMatches++;
+      }
+    }
+
+    const bare = /(?:https?:\/\/)?(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
+    while ((m = bare.exec(s))) {
+      const url = normalizeLivePocket(`https://livepocket.jp/e/${m[1]}`);
+      if (url) out.add(url);
+    }
+  };
+
+  addFromText(src, 'raw');
+  if (decoded !== src) addFromText(decoded, 'decoded');
+
+  const href = /href\s*=\s*["']([^"']+)["']/gi;
+  let h;
+  while ((h = href.exec(src))) {
+    const value = decodeRepeated(h[1]);
+    const before = out.size;
+    addFromText(value, 'decoded');
+    if (out.size > before) hrefMatches++;
+
+    const direct = normalizeLivePocket(value);
+    if (direct) {
+      out.add(direct);
+      hrefMatches++;
+    }
   }
-  return [...new Set(out)];
+
+  console.log(`[LINK_EXTRACT] rawMatches=${rawMatches} decodedMatches=${decodedMatches} hrefRedirectMatches=${hrefMatches} unique=${out.size}`);
+  return [...out];
 }
 
 function extractProduct(text) {
