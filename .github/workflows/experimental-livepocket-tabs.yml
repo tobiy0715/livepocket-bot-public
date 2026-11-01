@@ -2,6 +2,10 @@ name: Experimental LivePocket Tabs
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/experimental_livepocket_tabs_v1.js'
+      - '.github/workflows/experimental-livepocket-tabs.yml'
 
 jobs:
   probe:
