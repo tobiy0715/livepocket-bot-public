@@ -9,23 +9,39 @@ function text(h){return dec(String(h||'').replace(/<script[\s\S]*?<\/script>/gi,
 function pref(s){for(const p of PREFECTURES)if(String(s||'').includes(p))return p;return '';}
 function product(s){const v=String(s||'').replace(/\s+/g,' ').trim();const m=v.match(/(?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール(?:カード)?|遊戯王(?:カード|OCG|ラッシュデュエル)?)[^|｜\n]{0,120}/i);return m?m[0].trim():'';}
 function section(html,heading,nextHeadings){const h=html.replace(/\r/g,'');const start=h.search(new RegExp(`(?:>\\s*)${heading}(?:\\s*<|\\s*)`,'i'));if(start<0)return '';const tail=h.slice(start);let end=tail.length;for(const n of nextHeadings){const i=tail.search(new RegExp(`(?:>\\s*)${n}(?:\\s*<|\\s*)`,'i'));if(i>20&&i<end)end=i;}return text(tail.slice(0,end)).slice(0,12000);}
-function parse(url,html){const overview=section(html,'概要',['詳細','受付・チケット情報','お問い合わせ']);const detail=section(html,'詳細',['受付・チケット情報','お問い合わせ']);const tickets=section(html,'受付・チケット情報',['お問い合わせ']);const all=text(html);return {url,chars:html.length,overview,detail,tickets,product:product(detail+' '+tickets+' '+overview),prefecture:pref(overview)||pref(detail)||pref(tickets),hasOverview:!!overview,hasDetail:!!detail,hasTickets:!!tickets,tcg:TCG.findIndex(r=>r.test(all))>=0};}
 function normalizeUrl(raw){try{const u=new URL(String(raw).trim());if(u.protocol!=='https:'||u.hostname.toLowerCase()!=='livepocket.jp')return '';if(!/^\/e\/[A-Za-z0-9_-]+$/.test(u.pathname))return '';return `https://livepocket.jp${u.pathname}`;}catch{return '';}}
 function challenge(r){const body=text(r.body);return (r.status===202&&r.headers['x-amzn-waf-action']==='challenge')||/JavaScript is disabled|verify that you're not a robot/i.test(body);}
 
-async function probeOfficialSearch(){
-  const urls=['https://livepocket.jp/event/search','https://livepocket.jp/event/search?keyword=%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3'];
-  for(const url of urls){
-    try{
-      const r=await get(url);
-      const t=text(r.body);
-      console.log('[SEARCH_PROBE] '+JSON.stringify({url,status:r.status,chars:r.body.length,contentType:r.headers['content-type']||'',server:r.headers.server||'',wafAction:r.headers['x-amzn-waf-action']||'',blocked:challenge(r),preview:t.slice(0,500)}));
-    }catch(e){console.log(`[SEARCH_ERR] ${url} ${e.message}`);}
-  }
+function extractEmbeddedJson(html){
+  const out=[];
+  const re=/<script[^>]+(?:id=["']__NEXT_DATA__["']|type=["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while((m=re.exec(html))){try{const raw=dec(m[1]).trim();if(raw)out.push(JSON.parse(raw));}catch{}}
+  return out;
+}
+function walkStrings(value,out=[],depth=0){
+  if(depth>8||value==null)return out;
+  if(typeof value==='string'){out.push(value);return out;}
+  if(Array.isArray(value)){for(const v of value)walkStrings(v,out,depth+1);return out;}
+  if(typeof value==='object'){for(const [k,v] of Object.entries(value)){if(/(name|title|description|address|location|venue|content|body|detail|text|ticket)/i.test(k))walkStrings(v,out,depth+1);}}
+  return out;
+}
+function embeddedParse(html){
+  const jsons=extractEmbeddedJson(html);const strings=[];
+  for(const j of jsons)walkStrings(j,strings);
+  const blob=strings.join(' ');
+  const p=product(blob);const pr=pref(blob);
+  return {jsonBlocks:jsons.length,product:p,prefecture:pr,preview:blob.replace(/\s+/g,' ').slice(0,500)};
+}
+function parse(url,html){
+  const overview=section(html,'概要',['詳細','受付・チケット情報','お問い合わせ']);
+  const detail=section(html,'詳細',['受付・チケット情報','お問い合わせ']);
+  const tickets=section(html,'受付・チケット情報',['お問い合わせ']);
+  const all=text(html);const embedded=embeddedParse(html);
+  return {url,chars:html.length,overview,detail,tickets,product:embedded.product||product(detail+' '+tickets+' '+overview),prefecture:embedded.prefecture||pref(overview)||pref(detail)||pref(tickets),hasOverview:!!overview,hasDetail:!!detail,hasTickets:!!tickets,embedded,tcg:TCG.findIndex(r=>r.test(all)||r.test(embedded.preview))>=0};
 }
 
 async function main(){
-  await probeOfficialSearch();
   const raw=(process.env.LIVEPOCKET_URLS||'https://livepocket.jp/e/3tqn7,https://livepocket.jp/e/xpll0').split(',').map(normalizeUrl).filter(Boolean);
   const urls=[...new Set(raw)].slice(0,20);
   console.log(`[TABS] livepocket_only=true candidates=${urls.length}`);
@@ -34,8 +50,7 @@ async function main(){
   for(const url of urls){
     tested++;
     try{
-      const r=await get(url);
-      const row=parse(url,r.body);
+      const r=await get(url);const row=parse(url,r.body);
       row.status=r.status;row.contentType=r.headers['content-type']||'';row.contentEncoding=r.headers['content-encoding']||'';row.server=r.headers.server||'';row.location=r.headers.location||'';row.wafAction=r.headers['x-amzn-waf-action']||'';row.bodyPreview=text(r.body).slice(0,300);row.acquisitionBlocked=challenge(r);
       console.log('[TABS_RESULT] '+JSON.stringify(row));
       if(row.product&&row.prefecture&&row.hasOverview&&row.hasDetail&&row.hasTickets)complete++;
