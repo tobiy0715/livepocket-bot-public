@@ -17,19 +17,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Direct HTTP probe
+      - name: Syntax check
+        run: node --check scripts/experimental_livepocket_tabs_v1.js
+      - name: Direct LivePocket probe
         run: |
           set -euxo pipefail
-          for url in https://livepocket.jp/e/3tqn7 https://t.livepocket.jp/e/3tqn7; do
-            echo "===== $url ====="
-            curl -sS -L --compressed --max-time 20 -D /tmp/headers.txt -o /tmp/body.txt "$url" || true
-            echo '--- headers ---'
-            sed -n '1,40p' /tmp/headers.txt
-            echo '--- bytes ---'
-            wc -c /tmp/body.txt
-            echo '--- body preview ---'
-            head -c 500 /tmp/body.txt | tr '\n' ' ' || true
-            echo
-          done
+          url='https://livepocket.jp/e/3tqn7'
+          echo "===== $url ====="
+          curl -sS -L --compressed --max-time 20 -D /tmp/headers.txt -o /tmp/body.txt "$url" || true
+          echo '--- headers ---'
+          sed -n '1,40p' /tmp/headers.txt
+          echo '--- bytes ---'
+          wc -c /tmp/body.txt
+          echo '--- body preview ---'
+          head -c 500 /tmp/body.txt | tr '\n' ' ' || true
+          echo
       - name: Run isolated tab probe
         run: node scripts/experimental_livepocket_tabs_v1.js
