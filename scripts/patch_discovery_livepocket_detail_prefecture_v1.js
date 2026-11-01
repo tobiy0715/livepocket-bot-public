@@ -3,7 +3,7 @@ const path = require('path');
 
 const target = path.join(process.cwd(), 'scripts', 'collect_external_sources_v1.js');
 let src = fs.readFileSync(target, 'utf8');
-const marker = 'DISCOVERY_LIVEPOCKET_DETAIL_PREFECTURE_V6';
+const marker = 'DISCOVERY_LIVEPOCKET_DETAIL_PREFECTURE_V7';
 if (src.includes(marker)) process.exit(0);
 
 const fnStart = src.indexOf('async function validateLivePocketEvent');
@@ -49,18 +49,18 @@ const injection = `
     console.log('[LivePocketDetail] prefecture=' + (resolvedPref || '都道府県確認中') + ' source=' + (detailResolved[0] ? detailResolved[1] : (resolvedPref ? 'fallback' : 'none')) + ' url=' + url);
 `;
 
-// Find the existing prefecture field without relying on any earlier patch marker.
-const prefRe = /prefecture\s*:\s*extractPrefecture\(\s*combined\s*\)/;
+// Do not depend on validated-basic, title formatting, or an exact old expression.
+// Find the prefecture property inside validateLivePocketEvent and replace only its value.
+const prefRe = /\bprefecture\s*:\s*[^,\n}]+/;
 const prefMatch = prefRe.exec(fn);
-if (!prefMatch) throw new Error(marker + ': prefecture return target not found');
+if (!prefMatch) throw new Error(marker + ': prefecture field not found');
 const prefPos = prefMatch.index;
 
-// The final result object contains this prefecture field. Insert declarations immediately
-// before its return statement so the generated code remains valid JavaScript.
+// The result object's return is the last return token before the prefecture property.
 const returnPos = fn.lastIndexOf('return', prefPos);
 if (returnPos < 0) throw new Error(marker + ': result return not found');
 
-fn = fn.replace(prefRe, "prefecture:resolvedPref || '都道府県確認中'");
+fn = fn.slice(0, prefPos) + "prefecture:resolvedPref || '都道府県確認中'" + fn.slice(prefPos + prefMatch[0].length);
 fn = fn.slice(0, returnPos) + injection + fn.slice(returnPos);
 
 src = src.slice(0, fnStart) + fn + src.slice(fnEnd);
