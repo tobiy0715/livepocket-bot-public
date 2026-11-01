@@ -1,0 +1,29 @@
+name: Experimental LivePocket Internal Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      event_url:
+        description: 'LivePocket event URL (https://livepocket.jp/e/...)'
+        required: false
+        default: 'https://livepocket.jp/e/1g5mj'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check
+        run: node --check scripts/experimental_livepocket_internal_data_v1.js
+
+      - name: Probe LivePocket official data surfaces
+        env:
+          EVENT_URL: ${{ inputs.event_url }}
+        run: node scripts/experimental_livepocket_internal_data_v1.js
