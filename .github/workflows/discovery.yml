@@ -37,6 +37,7 @@ jobs:
       - name: Apply discovery patches
         run: |
           set -e
+          curl -fsSL https://raw.githubusercontent.com/tobiy0715/livepocket-bot-public/main/scripts/patch_discovery_livepocket_detail_prefecture_v1.js -o scripts/patch_discovery_livepocket_detail_prefecture_v1.js
           node scripts/normalize_external_source_state_v1.js
           node scripts/patch_external_source_details_v1.js
           node scripts/patch_external_source_extraction_v2.js
