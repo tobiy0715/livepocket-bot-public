@@ -1,12 +1,12 @@
 const https = require('https');
 
+const TABS = ['概要', '詳細', '受付・チケット情報'];
 const TCG_RULES = [
   /ポケモンカード|ポケカ|pokemon\s*card|pokemon\s*tcg/i,
   /ワンピースカード|one\s*piece\s*(card|tcg)|onepiece\s*card/i,
   /ドラゴンボールカード|ドラゴンボールスーパーカードゲーム|dragon\s*ball\s*(card|super\s*card)/i,
   /遊戯王カード|遊戯王OCG|遊戯王ラッシュデュエル|yu-gi-oh|yugioh/i
 ];
-
 const PREFECTURES = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
 
 function get(url, redirects = 0) {
@@ -54,10 +54,11 @@ function decodeRepeated(s) {
   return out;
 }
 
-function strip(s) {
+function stripHtml(s) {
   return decodeHtml(String(s || '')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')).trim();
 }
@@ -73,120 +74,16 @@ function normalizeLivePocket(raw) {
 }
 
 function extractLinks(html) {
-  const src = String(html || '');
-  const decoded = decodeRepeated(src);
+  const src = decodeRepeated(String(html || ''));
   const out = new Set();
-  let rawMatches = 0, decodedMatches = 0, hrefMatches = 0;
-
-  const addFromText = (text, counter) => {
-    const s = decodeRepeated(text);
-    const re = /https?:\/\/(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
-    let m;
-    while ((m = re.exec(s))) {
-      out.add(`https://livepocket.jp/e/${m[1]}`);
-      if (counter === 'raw') rawMatches++;
-      if (counter === 'decoded') decodedMatches++;
-    }
-    const bare = /(?:https?:\/\/)?(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
-    while ((m = bare.exec(s))) out.add(`https://livepocket.jp/e/${m[1]}`);
-  };
-
-  addFromText(src, 'raw');
-  if (decoded !== src) addFromText(decoded, 'decoded');
-
-  const href = /href\s*=\s*["']([^"']+)["']/gi;
-  let h;
-  while ((h = href.exec(src))) {
-    const before = out.size;
-    const value = decodeRepeated(h[1]);
-    addFromText(value, 'decoded');
-    const direct = normalizeLivePocket(value);
-    if (direct) out.add(direct);
-    if (out.size > before) hrefMatches++;
-  }
-
-  const mentions = (decoded.match(/livepocket\.jp/gi) || []).length;
-  const eventPaths = (decoded.match(/\/e\/[A-Za-z0-9_-]+/gi) || []).length;
-  console.log(`[LINK_EXTRACT] rawMatches=${rawMatches} decodedMatches=${decodedMatches} hrefRedirectMatches=${hrefMatches} livepocketMentions=${mentions} eventPathMentions=${eventPaths} unique=${out.size}`);
-  if (!out.size && mentions) {
-    const idx = decoded.toLowerCase().indexOf('livepocket.jp');
-    console.log(`[LINK_DIAG] ${JSON.stringify(decoded.slice(Math.max(0, idx - 180), idx + 500))}`);
-  }
+  const re = /https?:\/\/(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
+  let m;
+  while ((m = re.exec(src))) out.add(`https://livepocket.jp/e/${m[1]}`);
+  const bare = /(?:https?:\/\/)?(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
+  while ((m = bare.exec(src))) out.add(`https://livepocket.jp/e/${m[1]}`);
+  console.log(`[DISCOVERY] livepocketMentions=${(src.match(/livepocket\.jp/gi) || []).length} candidates=${out.size}`);
   return [...out];
 }
-
-function extractCandidateContexts(html) {
-  const src = String(html || '');
-  const decoded = decodeRepeated(src);
-  const rows = [];
-  const seen = new Set();
-  const hrefRe = /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<\/a>/gi;
-  let m;
-
-  while ((m = hrefRe.exec(src))) {
-    const url = normalizeLivePocket(m[1]);
-    if (!url) continue;
-    const start = m.index;
-    const next = hrefRe.lastIndex;
-    const rawContext = src.slice(start, Math.min(src.length, next + 2800));
-    const context = strip(decodeRepeated(rawContext));
-    if (!context) continue;
-    const key = `${url}|${context.slice(0, 1200)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    rows.push({ url, context });
-  }
-
-  const directRe = /https?:\/\/(?:www\.)?livepocket\.jp\/e\/([A-Za-z0-9_-]+)/gi;
-  while ((m = directRe.exec(decoded))) {
-    const url = `https://livepocket.jp/e/${m[1]}`;
-    const context = strip(decoded.slice(Math.max(0, m.index - 1200), Math.min(decoded.length, m.index + 3200)));
-    const key = `${url}|${context.slice(0, 1200)}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      rows.push({ url, context });
-    }
-  }
-
-  return rows;
-}
-
-function cleanResultContext(text, query) {
-  let s = String(text || '').replace(/\s+/g, ' ').trim();
-  s = s.replace(/site:livepocket\.jp\/e\//gi, ' ');
-  s = s.replace(/「[^」]{0,120}」の検索結果[^。]{0,500}/g, ' ');
-  s = s.replace(/検索結果ページについて[^。]{0,300}/g, ' ');
-  return s.replace(/\s+/g, ' ').trim();
-}
-
-function extractProduct(text) {
-  const s = String(text || '').replace(/\s+/g, ' ').trim();
-  const patterns = [
-    /((?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール(?:カード)?|遊戯王(?:カード|OCG|ラッシュデュエル)?)[^。]{0,180}?)(?:のチケット情報|のチケット情報・予約|抽選販売受付|抽選受付|抽選販売)/i,
-    /((?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール(?:カード)?|遊戯王(?:カード|OCG|ラッシュデュエル)?)[^。]{0,160})/i
-  ];
-  for (const re of patterns) {
-    const m = s.match(re);
-    if (m && m[1]) return m[1].trim().replace(/[\s]+/g, ' ');
-  }
-  return '';
-}
-
-function extractPrefecture(text, query) {
-  const s = String(text || '');
-  const queryPref = PREFECTURES.find(p => String(query || '').includes(p));
-  const hits = PREFECTURES.filter(p => s.includes(p));
-  if (!hits.length) return '';
-  if (hits.length === 1) return hits[0];
-  if (queryPref && hits.includes(queryPref)) {
-    const withoutQuery = s.replace(new RegExp(queryPref, 'g'), '');
-    const other = PREFECTURES.find(p => withoutQuery.includes(p));
-    if (other) return other;
-  }
-  return hits[0];
-}
-
-function isTcg(text) { return TCG_RULES.some(r => r.test(String(text || ''))); }
 
 function googleUrls(query) {
   const q = encodeURIComponent(`site:livepocket.jp/e/ ${query}`);
@@ -198,59 +95,138 @@ function bingUrls(query) {
 }
 function yahooUrl(query) { return `https://search.yahoo.co.jp/search?p=${encodeURIComponent(`site:livepocket.jp/e/ ${query}`)}&n=20`; }
 
-function parseSearch(html, engine, query) {
-  const contexts = extractCandidateContexts(html);
-  if (contexts.length) {
-    return contexts.slice(0, 30).map(x => ({ engine, query, url: x.url, text: cleanResultContext(x.context, query) }));
-  }
-  return extractLinks(html).slice(0, 20).map(url => ({ engine, query, url, text: '' }));
-}
-
-async function searchOne(engine, url, query) {
-  const r = await get(url);
-  console.log(`[SEARCH] engine=${engine} query=${JSON.stringify(query)} status=${r.status} chars=${r.body.length}`);
-  if (r.status !== 200) return [];
-  return parseSearch(r.body, engine, query);
-}
-
-async function search(engine, query) {
+async function discover(engine, query) {
   const urls = engine === 'google' ? googleUrls(query) : engine === 'bing' ? bingUrls(query) : [yahooUrl(query)];
   for (const url of urls) {
     try {
-      const rows = await searchOne(engine, url, query);
-      if (rows.length) return rows;
+      const r = await get(url);
+      console.log(`[DISCOVERY_SEARCH] engine=${engine} query=${JSON.stringify(query)} status=${r.status} chars=${r.body.length}`);
+      if (r.status !== 200) continue;
+      const links = extractLinks(r.body);
+      if (links.length) return links;
     } catch (e) {
-      console.log(`[SEARCH_ERROR] engine=${engine} query=${JSON.stringify(query)} error=${e.message}`);
+      console.log(`[DISCOVERY_ERROR] engine=${engine} error=${e.message}`);
     }
   }
   return [];
 }
 
+function extractTabSections(html) {
+  const src = String(html || '');
+  const text = stripHtml(src);
+  const positions = {};
+
+  for (const tab of TABS) {
+    const hits = [];
+    let pos = 0;
+    while ((pos = text.indexOf(tab, pos)) !== -1) {
+      hits.push(pos);
+      pos += tab.length;
+    }
+    positions[tab] = hits;
+  }
+
+  const starts = TABS.map(tab => ({ tab, pos: positions[tab].length ? positions[tab][positions[tab].length - 1] : -1 }))
+    .filter(x => x.pos >= 0)
+    .sort((a, b) => a.pos - b.pos);
+
+  const sections = {};
+  for (let i = 0; i < starts.length; i++) {
+    const cur = starts[i];
+    const end = i + 1 < starts.length ? starts[i + 1].pos : text.length;
+    const body = text.slice(cur + cur.tab.length, end).trim();
+    if (body) sections[cur.tab] = body.slice(0, 12000);
+  }
+
+  const hasOverview = !!sections['概要'];
+  const hasDetail = !!sections['詳細'];
+  const hasTickets = !!sections['受付・チケット情報'];
+  console.log(`[TAB_ONLY] hasOverview=${hasOverview} hasDetail=${hasDetail} hasTickets=${hasTickets} overviewChars=${(sections['概要'] || '').length} detailChars=${(sections['詳細'] || '').length} ticketsChars=${(sections['受付・チケット情報'] || '').length}`);
+  return sections;
+}
+
+function extractProductFromTabs(tabs) {
+  const text = TABS.map(t => tabs[t] || '').join(' ');
+  const patterns = [
+    /((?:ポケモンカード|ポケカ)[^。]{0,180}?)(?:抽選|販売|受付|応募)/i,
+    /((?:ONE\s*PIECE|ワンピースカード)[^。]{0,180}?)(?:抽選|販売|受付|応募)/i,
+    /((?:ドラゴンボール(?:カード|スーパーカードゲーム)?)[^。]{0,180}?)(?:抽選|販売|受付|応募)/i,
+    /((?:遊戯王(?:カード|OCG|ラッシュデュエル)?)[^。]{0,180}?)(?:抽選|販売|受付|応募)/i,
+    /((?:ポケモンカード|ポケカ|ONE\s*PIECE|ワンピースカード|ドラゴンボール|遊戯王)[^。]{0,180})/i
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m && m[1]) return m[1].replace(/\s+/g, ' ').trim();
+  }
+  return '';
+}
+
+function extractPrefectureFromTabs(tabs) {
+  const text = TABS.map(t => tabs[t] || '').join(' ');
+  const hits = PREFECTURES.filter(p => text.includes(p));
+  return hits.length === 1 ? hits[0] : (hits.find(p => /会場|住所|所在地|店舗/.test(text.slice(Math.max(0, text.indexOf(p) - 60), text.indexOf(p) + 80))) || hits[0] || '');
+}
+
+function isTcgFromTabs(tabs) {
+  return TCG_RULES.some(rule => TABS.some(tab => rule.test(tabs[tab] || '')));
+}
+
+async function inspectEvent(url) {
+  try {
+    const r = await get(url);
+    const blocked = r.status === 202 || r.status === 403 || !r.body;
+    console.log(`[EVENT_FETCH] url=${url} status=${r.status} chars=${r.body.length} blocked=${blocked}`);
+    if (blocked) return { url, acquisitionBlocked: true, status: r.status, product: '', prefecture: '', tcg: false, complete: false };
+
+    const tabs = extractTabSections(r.body);
+    const product = extractProductFromTabs(tabs);
+    const prefecture = extractPrefectureFromTabs(tabs);
+    const tcg = isTcgFromTabs(tabs);
+    const complete = !!(tabs['概要'] && tabs['詳細'] && tabs['受付・チケット情報'] && product && prefecture && tcg);
+
+    return {
+      url,
+      source: 'livepocket-tabs-only',
+      product,
+      prefecture,
+      tcg,
+      hasOverview: !!tabs['概要'],
+      hasDetail: !!tabs['詳細'],
+      hasTickets: !!tabs['受付・チケット情報'],
+      complete,
+      evidence: {
+        overview: (tabs['概要'] || '').slice(0, 500),
+        detail: (tabs['詳細'] || '').slice(0, 500),
+        tickets: (tabs['受付・チケット情報'] || '').slice(0, 500)
+      }
+    };
+  } catch (e) {
+    console.log(`[EVENT_ERROR] url=${url} error=${e.message}`);
+    return { url, acquisitionError: e.message, complete: false };
+  }
+}
+
 async function main() {
   const base = String(process.env.SEARCH_QUERY || 'ポケモンカード 抽選').trim();
   const queries = [base, `${base} LivePocket`, `${base} 受付`, `${base} 店舗`, `${base} 岐阜県`, `${base} 愛知県`];
-  const all = [];
-  for (const query of queries) for (const engine of ['google', 'bing', 'yahoo']) all.push(...await search(engine, query));
+  const discovered = new Set();
 
-  const map = new Map();
-  for (const item of all) {
-    const url = normalizeLivePocket(item.url);
-    if (!url) continue;
-    const existing = map.get(url) || { url, contexts: [] };
-    if (item.text) existing.contexts.push(item.text);
-    map.set(url, existing);
+  for (const query of queries) {
+    for (const engine of ['google', 'bing', 'yahoo']) {
+      const links = await discover(engine, query);
+      for (const link of links) discovered.add(normalizeLivePocket(link));
+    }
   }
 
-  const rows = [...map.values()].map(item => {
-    const text = item.contexts.join(' | ');
-    const product = extractProduct(text);
-    const prefecture = extractPrefecture(text, item.contexts.join(' '));
-    const tcg = isTcg(text);
-    return { url: item.url, product, prefecture, tcg, complete: !!(product && prefecture && tcg), evidence: text.slice(0, 700) };
-  });
-  const tcgRows = rows.filter(r => r.tcg);
-  const complete = tcgRows.filter(r => r.complete);
-  console.log(`[ACQUISITION_V2_SUMMARY] candidates=${rows.length} tcg=${tcgRows.length} complete=${complete.length}`);
-  for (const row of rows.slice(0, 50)) console.log('[ACQUISITION_V2_RESULT] ' + JSON.stringify(row));
+  const candidates = [...discovered].filter(Boolean).slice(0, 30);
+  console.log(`[TAB_ONLY_DISCOVERY_SUMMARY] candidates=${candidates.length}`);
+
+  const results = [];
+  for (const url of candidates) results.push(await inspectEvent(url));
+
+  const complete = results.filter(r => r.complete);
+  console.log(`[TAB_ONLY_SUMMARY] candidates=${results.length} complete=${complete.length}`);
+  for (const row of results) console.log('[TAB_ONLY_RESULT] ' + JSON.stringify(row));
 }
+
 main().catch(err => { console.error(err); process.exit(1); });
