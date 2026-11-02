@@ -52,21 +52,48 @@
 
   function extractProduct(section) {
     if (!section) return '';
+
     const paragraphs = Array.from(section.querySelectorAll('p')).map(visibleText).filter(Boolean);
     const labelIndex = paragraphs.findIndex(x => x.includes('商品情報'));
     if (labelIndex >= 0) {
       const parts = [];
       for (let i = labelIndex + 1; i < paragraphs.length && i < labelIndex + 4; i++) {
         const p = paragraphs[i];
-        if (/販売価格|応募方法|応募期間|受付期間|注意事項/.test(p)) break;
+        if (/販売価格|応募方法|応募期間|受付期間|注意事項|価格/.test(p)) break;
         if (p) parts.push(p);
       }
       const candidate = clean(parts.join(' '));
       if (candidate) return candidate;
     }
+
     const text = sectionText(section);
-    const m = text.match(/商品情報\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|注意事項|$)/i);
-    return m ? clean(m[1]) : '';
+
+    const labeledPatterns = [
+      /商品情報\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|注意事項|価格|$)/i,
+      /対象商品\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|当選発表|価格|※|＜|<|$)/i,
+      /商品名\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|当選発表|価格|※|＜|<|$)/i
+    ];
+
+    for (const re of labeledPatterns) {
+      const m = text.match(re);
+      if (m && clean(m[1])) return clean(m[1]);
+    }
+
+    // Some LivePocket pages place the product immediately after a TCG name
+    // without an explicit 商品情報/対象商品 label.
+    const tcgPatterns = [
+      /(ポケモンカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i,
+      /(ワンピースカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i,
+      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i,
+      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i
+    ];
+
+    for (const re of tcgPatterns) {
+      const m = text.match(re);
+      if (m && clean(m[1])) return clean(m[1]);
+    }
+
+    return '';
   }
 
   function extractTickets(section) {
