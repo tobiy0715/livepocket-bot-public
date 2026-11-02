@@ -31,9 +31,15 @@ jobs:
           if (!data.ok) throw new Error('GAS returned ok=false');
           if (!data.capture) throw new Error('GAS capture is empty');
           const c = data.capture;
-          if (!c.url || !c.product || !c.prefecture || !c.store) {
+
+          const basicOk = Boolean(c.url && c.product);
+          const multiStoreOk = c.store === '複数店舗';
+          const singleStoreOk = Boolean(c.prefecture && c.store && c.store !== '複数店舗');
+
+          if (!basicOk || (!multiStoreOk && !singleStoreOk)) {
             throw new Error('GAS capture is incomplete: ' + JSON.stringify(c));
           }
+
           fs.writeFileSync('/tmp/livepocket_gas_capture.json', JSON.stringify({
             source: 'livepocket-gas-v7',
             capturedAt: c.receivedAt || c.capturedAt || new Date().toISOString(),
@@ -51,6 +57,7 @@ jobs:
             complete: c.complete === true,
             sourceDetail: String(c.source || '')
           }, null, 2) + '\n');
+
           console.log(fs.readFileSync('/tmp/livepocket_gas_capture.json', 'utf8'));
           NODE
 
