@@ -1,0 +1,28 @@
+name: Experimental LivePocket Intake
+
+on:
+  repository_dispatch:
+    types: [livepocket_capture]
+
+concurrency:
+  group: livepocket-intake
+  cancel-in-progress: false
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate captured payload
+        env:
+          LIVEPOCKET_CAPTURE_JSON: ${{ toJSON(github.event.client_payload) }}
+        run: node scripts/experimental_livepocket_intake_v1.js
