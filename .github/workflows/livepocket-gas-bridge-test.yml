@@ -1,0 +1,63 @@
+name: LivePocket GAS Bridge Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private Router state
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot-data
+          token: ${{ secrets.ROUTER_REPO_TOKEN }}
+          path: data
+          fetch-depth: 1
+
+      - name: Fetch GAS capture
+        env:
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
+        run: |
+          set -e
+          test -n "$GAS_CAPTURE_URL"
+          curl -fsSL --retry 3 --max-time 30 "$GAS_CAPTURE_URL" -o /tmp/capture.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('/tmp/capture.json', 'utf8'));
+          if (!data.ok) throw new Error('GAS returned ok=false');
+          if (!data.capture) throw new Error('GAS capture is empty');
+          const c = data.capture;
+          if (!c.url || !c.product || !c.prefecture || !c.store) {
+            throw new Error('GAS capture is incomplete: ' + JSON.stringify(c));
+          }
+          fs.writeFileSync('/tmp/livepocket_gas_capture.json', JSON.stringify({
+            source: 'livepocket-gas-v7',
+            capturedAt: c.receivedAt || new Date().toISOString(),
+            url: String(c.url),
+            product: String(c.product),
+            prefecture: String(c.prefecture),
+            store: String(c.store)
+          }, null, 2) + '\n');
+          console.log(fs.readFileSync('/tmp/livepocket_gas_capture.json', 'utf8'));
+          NODE
+
+      - name: Update bridge state
+        run: |
+          set -e
+          cp /tmp/livepocket_gas_capture.json data/livepocket_gas_capture.json
+          git -C data config user.name "github-actions[bot]"
+          git -C data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C data add livepocket_gas_capture.json
+          if git -C data diff --cached --quiet; then
+            echo "No bridge-state change."
+          else
+            git -C data commit -m "chore: update LivePocket GAS capture bridge"
+            git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
+            git -C data push origin main
+          fi
+        env:
+          ROUTER_REPO_TOKEN: ${{ secrets.ROUTER_REPO_TOKEN }}
