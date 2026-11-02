@@ -55,9 +55,6 @@
     const text = sectionText(section);
     const isTcgProduct = value => !!value && TCG.some(re => re.test(value)) && !/^(1点|一1点|対象店舗|購入権利)/.test(value);
 
-    // Strongest signal: a TCG name followed by the actual Japanese-quoted product title.
-    // Check this BEFORE generic labels because later text can contain phrases such as
-    // 「対象商品1点の購入権利」 that are not product names.
     const quotedPatterns = [
       /(ポケモンカードゲーム\s*[^。\n]{0,80}?「[^」]+」)/i,
       /(ポケモンカード(?:ゲーム)?\s*[^。\n]{0,80}?「[^」]+」)/i,
@@ -93,7 +90,6 @@
       if (m && isTcgProduct(clean(m[1]))) return clean(m[1]);
     }
 
-    // Fallback: TCG name plus the following product text up to an operational field.
     const tcgPatterns = [
       /(ポケモンカード(?:ゲーム)?\s+.+?)(?=\s*(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
       /(ワンピースカード(?:ゲーム)?\s+.+?)(?=\s*(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
@@ -112,38 +108,72 @@
     return section ? sectionText(section) : '';
   }
 
+  function clickTab(label) {
+    const nodes = Array.from(document.querySelectorAll('button,a,[role="tab"],li,div'));
+    const target = nodes.find(el => clean(el.textContent) === label);
+    if (target) {
+      try {
+        target.click();
+        return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  function capture() {
+    const overviewSection = findSection('概要', '#overview');
+    const detailSection = findSection('詳細', '#detail');
+    const ticketsSection = findSection('受付・チケット情報', '#ticket');
+    const overview = extractOverview(overviewSection);
+    const detail = sectionText(detailSection);
+    const tickets = extractTickets(ticketsSection);
+    const product = extractProduct(detailSection);
+    const combined = [overview.text, detail, tickets].join(' ');
+    const tcg = TCG.some(re => re.test(combined));
+
+    return {
+      ok: true,
+      source: 'livepocket-safari-dom-v3',
+      url: location.href,
+      title: clean(document.title),
+      product,
+      store: overview.store,
+      prefecture: overview.prefecture,
+      address: overview.address,
+      overview: overview.text,
+      detail,
+      tickets,
+      hasOverview: !!overview.text,
+      hasDetail: !!detail,
+      hasTickets: !!tickets,
+      tcg,
+      complete: !!product && !!overview.prefecture && !!overview.text && !!detail && !!tickets,
+      capturedAt: new Date().toISOString()
+    };
+  }
+
   if (!/^https?:\/\/(?:www\.)?livepocket\.jp\//i.test(location.href)) {
     completion({ ok: false, error: 'NOT_LIVEPOCKET', url: location.href });
     return;
   }
 
-  const overviewSection = findSection('概要', '#overview');
-  const detailSection = findSection('詳細', '#detail');
-  const ticketsSection = findSection('受付・チケット情報', '#ticket');
-  const overview = extractOverview(overviewSection);
-  const detail = sectionText(detailSection);
-  const tickets = extractTickets(ticketsSection);
-  const product = extractProduct(detailSection);
-  const combined = [overview.text, detail, tickets].join(' ');
-  const tcg = TCG.some(re => re.test(combined));
+  // LivePocket can lazy-render tab content. Open 詳細 once, then allow the DOM
+  // to settle before reading it. This remains DOM-only and makes no network request.
+  clickTab('詳細');
 
-  completion({
-    ok: true,
-    source: 'livepocket-safari-dom-v3',
-    url: location.href,
-    title: clean(document.title),
-    product,
-    store: overview.store,
-    prefecture: overview.prefecture,
-    address: overview.address,
-    overview: overview.text,
-    detail,
-    tickets,
-    hasOverview: !!overview.text,
-    hasDetail: !!detail,
-    hasTickets: !!tickets,
-    tcg,
-    complete: !!product && !!overview.prefecture && !!overview.text && !!detail && !!tickets,
-    capturedAt: new Date().toISOString()
-  });
+  let attempts = 0;
+  const maxAttempts = 12;
+  const retryMs = 500;
+
+  function finishWhenReady() {
+    const data = capture();
+    if (data.complete || attempts >= maxAttempts) {
+      completion(data);
+      return;
+    }
+    attempts++;
+    setTimeout(finishWhenReady, retryMs);
+  }
+
+  finishWhenReady();
 })();
