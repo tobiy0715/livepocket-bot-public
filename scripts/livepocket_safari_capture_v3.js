@@ -53,6 +53,23 @@
     if (!section) return '';
 
     const text = sectionText(section);
+    const isTcgProduct = value => !!value && TCG.some(re => re.test(value)) && !/^(1点|一1点|対象店舗|購入権利)/.test(value);
+
+    // Strongest signal: a TCG name followed by the actual Japanese-quoted product title.
+    // Check this BEFORE generic labels because later text can contain phrases such as
+    // 「対象商品1点の購入権利」 that are not product names.
+    const quotedPatterns = [
+      /(ポケモンカードゲーム\s*[^。\n]{0,80}?「[^」]+」)/i,
+      /(ポケモンカード(?:ゲーム)?\s*[^。\n]{0,80}?「[^」]+」)/i,
+      /(ワンピースカード(?:ゲーム)?\s*[^。\n]{0,80}?「[^」]+」)/i,
+      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s*[^。\n]{0,80}?「[^」]+」)/i,
+      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s*[^。\n]{0,80}?「[^」]+」)/i
+    ];
+    for (const re of quotedPatterns) {
+      const m = text.match(re);
+      if (m && clean(m[1])) return clean(m[1]);
+    }
+
     const paragraphs = Array.from(section.querySelectorAll('p')).map(visibleText).filter(Boolean);
     const labelIndex = paragraphs.findIndex(x => x.includes('商品情報'));
     if (labelIndex >= 0) {
@@ -63,7 +80,7 @@
         if (p) parts.push(p);
       }
       const candidate = clean(parts.join(' '));
-      if (candidate) return candidate;
+      if (isTcgProduct(candidate)) return candidate;
     }
 
     const labeledPatterns = [
@@ -73,32 +90,19 @@
     ];
     for (const re of labeledPatterns) {
       const m = text.match(re);
-      if (m && clean(m[1])) return clean(m[1]);
-    }
-
-    // LivePocket frequently writes a TCG name followed by a Japanese-quoted product title.
-    const quotedPatterns = [
-      /(ポケモンカードゲーム\s*「[^」]+」)/i,
-      /(ポケモンカード(?:ゲーム)?\s*「[^」]+」)/i,
-      /(ワンピースカード(?:ゲーム)?\s*「[^」]+」)/i,
-      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s*「[^」]+」)/i,
-      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s*「[^」]+」)/i
-    ];
-    for (const re of quotedPatterns) {
-      const m = text.match(re);
-      if (m && clean(m[1])) return clean(m[1]);
+      if (m && isTcgProduct(clean(m[1]))) return clean(m[1]);
     }
 
     // Fallback: TCG name plus the following product text up to an operational field.
     const tcgPatterns = [
-      /(ポケモンカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
-      /(ワンピースカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
-      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
-      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i
+      /(ポケモンカード(?:ゲーム)?\s+.+?)(?=\s*(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
+      /(ワンピースカード(?:ゲーム)?\s+.+?)(?=\s*(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
+      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s+.+?)(?=\s*(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
+      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s+.+?)(?=\s*(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i
     ];
     for (const re of tcgPatterns) {
       const m = text.match(re);
-      if (m && clean(m[1])) return clean(m[1]);
+      if (m && isTcgProduct(clean(m[1]))) return clean(m[1]);
     }
 
     return '';
