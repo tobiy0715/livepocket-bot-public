@@ -1,7 +1,7 @@
 /*
  * LivePocket iPhone Safari DOM capture v5.3
  * Test only. V7.3 / V4 / V5 / V5.2 remain untouched.
- * Flexible product extraction: DOM candidates + JSON-LD + meta + image alt/title + text scoring.
+ * Flexible product extraction + flexible TCG detection.
  */
 (function () {
   'use strict';
@@ -63,9 +63,7 @@
 
   function metadataCandidates(){
     const out=[];
-    document.querySelectorAll('meta[property="og:title"],meta[name="twitter:title"],meta[name="title"],meta[itemprop="name"]').forEach(e=>{
-      if(e.content)out.push(e.content);
-    });
+    document.querySelectorAll('meta[property="og:title"],meta[name="twitter:title"],meta[name="title"],meta[itemprop="name"]').forEach(e=>{if(e.content)out.push(e.content);});
     document.querySelectorAll('img[alt],img[title],[aria-label],[title]').forEach(e=>{
       const v=e.getAttribute('alt')||e.getAttribute('title')||e.getAttribute('aria-label');
       if(v)out.push(v);
@@ -133,13 +131,10 @@
 
   function productFromCandidates(groups){
     const ranked=[];
-    groups.forEach(g=>{
-      uniq(g.items||[]).forEach(v=>{
-        const n=normalizeCandidate(v);
-        const score=candidateScore(n,g.source);
-        if(score>-50)ranked.push({v:n,score});
-      });
-    });
+    groups.forEach(g=>uniq(g.items||[]).forEach(v=>{
+      const n=normalizeCandidate(v),score=candidateScore(n,g.source);
+      if(score>-50)ranked.push({v:n,score});
+    }));
     ranked.sort((a,b)=>b.score-a.score);
     if(!ranked.length)return '';
     const best=ranked[0];
@@ -161,6 +156,18 @@
       {source:'text',items:brandCandidates(txt(document.body))}
     ];
     return productFromCandidates(groups)||'';
+  }
+
+  function detectTCG(allText,p){
+    const t=clean(allText),productText=clean(p);
+    if(TCG.test(t))return true;
+    // Flexible brand detection: a product can omit the words "card/game".
+    // Require a product-like context to reduce false positives from ordinary ONE PIECE pages.
+    if(/(?:ONE\s*PIECE|ワンピース)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
+    if(/(?:ポケモン|ポケカ)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
+    if(/(?:ドラゴンボール)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
+    if(/(?:遊戯王)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
+    return false;
   }
 
   function prefectureFromText(s){
@@ -204,7 +211,7 @@
     const o=overview(),d=detail(),t=sec('受付・チケット情報','#ticket');
     const detailText=txt(d),tickets=txt(t),loc=locationData(o,detailText,tickets),p=product(d,o),dl=deadline(o,detailText,tickets);
     const allText=[o,detailText,tickets,p].join(' ');
-    return {ok:true,source:'livepocket-safari-dom-v5.3',url:location.href,title:clean(document.title),product:p,store:loc.store,stores:loc.stores,prefecture:loc.prefecture,route:loc.route,address:loc.address,overview:o,detail:detailText,tickets,deadline:dl,tcg:TCG.test(allText),complete:!!p&&!!detailText,capturedAt:new Date().toISOString()};
+    return {ok:true,source:'livepocket-safari-dom-v5.3',url:location.href,title:clean(document.title),product:p,store:loc.store,stores:loc.stores,prefecture:loc.prefecture,route:loc.route,address:loc.address,overview:o,detail:detailText,tickets,deadline:dl,tcg:detectTCG(allText,p),complete:!!p&&!!detailText,capturedAt:new Date().toISOString()};
   }
 
   if(!/^https?:\/\/(?:www\.)?livepocket\.jp\//i.test(location.href)){
