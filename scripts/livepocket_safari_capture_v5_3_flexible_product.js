@@ -9,7 +9,7 @@
   const PREFECTURES=['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
   const TCG=/ポケモンカード|ポケカ|ワンピースカード|one\s*piece\s*(card|tcg)|ドラゴンボール(?:カード|スーパーカードゲーム)?|dragon\s*ball\s*(card|super\s*card)|遊戯王(?:カード|OCG|ラッシュデュエル)?|yu-gi-oh|yugioh/i;
   const ONLINE=/オンライン|web応募|ＷＥＢ応募|WEB応募|通販|ネット販売|オンライン販売/i;
-  const PRODUCT_HINT=/商品|抽選商品|販売商品|商品名|賞品|BOX|ＢＯＸ|ボックス|パック|セット|デッキ|カードゲーム|トレーディングカード|カード/i;
+  const PRODUCT_HINT=/商品|抽選商品|販売商品|商品名|対象商品|賞品|BOX|ＢＯＸ|ボックス|パック|セット|デッキ|カードゲーム|トレーディングカード|カード/i;
   const NOISE=/^((重要|注意|受付|チケット|応募|当選|販売|購入|会場|住所|販売元|詳細|概要).{0,40})$|抽選販売受付|抽選受付ページ|応募期間|当選発表|購入期間|ポイントカード会員/i;
   const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
   const txt=e=>clean(e&&(e.innerText||e.textContent));
@@ -79,14 +79,27 @@
     return uniq(out);
   }
 
+  function extractTargetProduct(s){
+    const t=clean(s),out=[];
+    const re=/(?:＜|<)?対象商品(?:＞|>|：|:)?\s*(.*?)(?=\s*(?:＜|<)(?:販売価格|価格|対象店舗|店舗|購入|応募|受付)|$)/gi;
+    let m;
+    while((m=re.exec(t))){
+      const v=clean(m[1]);
+      if(v&&v.length>=3)out.push(v);
+    }
+    return uniq(out);
+  }
+
   function extractLabeledText(s){
     const t=clean(s),out=[];
+    const target=extractTargetProduct(t);
+    out.push(...target);
     const lines=t.split(/(?=抽選商品|商品名|販売商品|商品[：:]|賞品[：:])/);
     lines.forEach(x=>{
       const m=x.match(/(?:抽選商品|商品名|販売商品|商品|賞品)[：:]?\s*(.{2,180})/i);
       if(m)out.push(clean(m[1]));
     });
-    return out;
+    return uniq(out);
   }
 
   function brandCandidates(s){
@@ -103,7 +116,7 @@
 
   function normalizeCandidate(s){
     let v=clean(s).replace(/[【】]/g,' ').replace(/\s{2,}/g,' ').trim();
-    v=v.replace(/^商品(?:名)?[：:]\s*/i,'').replace(/^抽選商品[：:]?\s*/i,'').trim();
+    v=v.replace(/^商品(?:名)?[：:]\s*/i,'').replace(/^抽選商品[：:]?\s*/i,'').replace(/^対象商品[：:]?\s*/i,'').trim();
     v=v.replace(/\s+(?:の)?(?:抽選販売受付|抽選販売|抽選受付)(?:ページ)?(?:です)?[。.]?$/i,'').trim();
     v=v.replace(/\s+の抽選販売受付ページです[。.]?$/i,'').trim();
     return v;
@@ -161,8 +174,6 @@
   function detectTCG(allText,p){
     const t=clean(allText),productText=clean(p);
     if(TCG.test(t))return true;
-    // Flexible brand detection: a product can omit the words "card/game".
-    // Require a product-like context to reduce false positives from ordinary ONE PIECE pages.
     if(/(?:ONE\s*PIECE|ワンピース)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
     if(/(?:ポケモン|ポケカ)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
     if(/(?:ドラゴンボール)/i.test(productText)&&/(?:BOX|ＢＯＸ|ボックス|パック|セット|デッキ|抽選|販売)/i.test(t))return true;
