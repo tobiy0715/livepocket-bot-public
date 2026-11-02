@@ -36,11 +36,20 @@ jobs:
           }
           fs.writeFileSync('/tmp/livepocket_gas_capture.json', JSON.stringify({
             source: 'livepocket-gas-v7',
-            capturedAt: c.receivedAt || new Date().toISOString(),
+            capturedAt: c.receivedAt || c.capturedAt || new Date().toISOString(),
             url: String(c.url),
-            product: String(c.product),
-            prefecture: String(c.prefecture),
-            store: String(c.store)
+            title: String(c.title || ''),
+            product: String(c.product || ''),
+            prefecture: String(c.prefecture || ''),
+            store: String(c.store || ''),
+            address: String(c.address || ''),
+            overview: String(c.overview || ''),
+            detail: String(c.detail || ''),
+            tickets: String(c.tickets || ''),
+            deadline: String(c.deadline || ''),
+            tcg: c.tcg === true,
+            complete: c.complete === true,
+            sourceDetail: String(c.source || '')
           }, null, 2) + '\n');
           console.log(fs.readFileSync('/tmp/livepocket_gas_capture.json', 'utf8'));
           NODE
