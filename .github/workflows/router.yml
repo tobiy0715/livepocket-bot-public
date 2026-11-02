@@ -45,6 +45,7 @@ jobs:
           node --check scripts/patch_url_scope_v1.js
           node --check scripts/patch_evidence_hardening_v1.js
           node --check scripts/patch_livepocket_unified_truth_v1.js
+          node --check scripts/ingest_livepocket_gas_capture_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -68,6 +69,7 @@ jobs:
           node --check scripts/collect_external_sources_v1.js
           node --check scripts/normalize_external_source_state_v1.js
           node --check scripts/test_channel_routing_completion_v1.js
+          node --check scripts/ingest_livepocket_gas_capture_v1.js
           node --check bot/index.js
       - name: Apply Router compatibility patches
         run: |
@@ -174,6 +176,8 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
+      - name: Ingest LivePocket GAS structured capture
+        run: node scripts/ingest_livepocket_gas_capture_v1.js
       - name: Syntax Check
         run: node --check bot/index.js
       - name: Router Bot
