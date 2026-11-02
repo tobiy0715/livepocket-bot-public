@@ -2,7 +2,6 @@
  * LivePocket iPhone Safari DOM capture v3
  * Purpose: capture product/prefecture/store/ticket data from the real LivePocket DOM.
  * No network requests. No WAF bypass. Search results are not used as data.
- * Intended for Safari Run JavaScript on Webpage / bookmarklet testing.
  */
 (function () {
   'use strict';
@@ -53,11 +52,12 @@
   function extractProduct(section) {
     if (!section) return '';
 
+    const text = sectionText(section);
     const paragraphs = Array.from(section.querySelectorAll('p')).map(visibleText).filter(Boolean);
     const labelIndex = paragraphs.findIndex(x => x.includes('商品情報'));
     if (labelIndex >= 0) {
       const parts = [];
-      for (let i = labelIndex + 1; i < paragraphs.length && i < labelIndex + 4; i++) {
+      for (let i = labelIndex + 1; i < paragraphs.length && i < labelIndex + 5; i++) {
         const p = paragraphs[i];
         if (/販売価格|応募方法|応募期間|受付期間|注意事項|価格/.test(p)) break;
         if (p) parts.push(p);
@@ -66,28 +66,36 @@
       if (candidate) return candidate;
     }
 
-    const text = sectionText(section);
-
     const labeledPatterns = [
       /商品情報\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|注意事項|価格|$)/i,
-      /対象商品\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|当選発表|価格|※|＜|<|$)/i,
-      /商品名\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|当選発表|価格|※|＜|<|$)/i
+      /対象商品\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|当選発表|価格|購入|※|＜|<|$)/i,
+      /商品名\s*[:：]?\s*(.+?)(?=販売価格|応募方法|応募期間|受付期間|当選発表|価格|購入|※|＜|<|$)/i
     ];
-
     for (const re of labeledPatterns) {
       const m = text.match(re);
       if (m && clean(m[1])) return clean(m[1]);
     }
 
-    // Some LivePocket pages place the product immediately after a TCG name
-    // without an explicit 商品情報/対象商品 label.
-    const tcgPatterns = [
-      /(ポケモンカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i,
-      /(ワンピースカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i,
-      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i,
-      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表)|$)/i
+    // LivePocket frequently writes a TCG name followed by a Japanese-quoted product title.
+    const quotedPatterns = [
+      /(ポケモンカードゲーム\s*「[^」]+」)/i,
+      /(ポケモンカード(?:ゲーム)?\s*「[^」]+」)/i,
+      /(ワンピースカード(?:ゲーム)?\s*「[^」]+」)/i,
+      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s*「[^」]+」)/i,
+      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s*「[^」]+」)/i
     ];
+    for (const re of quotedPatterns) {
+      const m = text.match(re);
+      if (m && clean(m[1])) return clean(m[1]);
+    }
 
+    // Fallback: TCG name plus the following product text up to an operational field.
+    const tcgPatterns = [
+      /(ポケモンカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
+      /(ワンピースカード(?:ゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
+      /(ドラゴンボール(?:カード|スーパーカードゲーム)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i,
+      /(遊戯王(?:カード|OCG|ラッシュデュエル)?\s+.+?)(?=\s+(?:価格|販売価格|応募方法|応募期間|受付期間|当選発表|購入)|$)/i
+    ];
     for (const re of tcgPatterns) {
       const m = text.match(re);
       if (m && clean(m[1])) return clean(m[1]);
@@ -97,8 +105,7 @@
   }
 
   function extractTickets(section) {
-    if (!section) return '';
-    return sectionText(section);
+    return section ? sectionText(section) : '';
   }
 
   if (!/^https?:\/\/(?:www\.)?livepocket\.jp\//i.test(location.href)) {
@@ -116,7 +123,7 @@
   const combined = [overview.text, detail, tickets].join(' ');
   const tcg = TCG.some(re => re.test(combined));
 
-  const result = {
+  completion({
     ok: true,
     source: 'livepocket-safari-dom-v3',
     url: location.href,
@@ -134,7 +141,5 @@
     tcg,
     complete: !!product && !!overview.prefecture && !!overview.text && !!detail && !!tickets,
     capturedAt: new Date().toISOString()
-  };
-
-  completion(result);
+  });
 })();
