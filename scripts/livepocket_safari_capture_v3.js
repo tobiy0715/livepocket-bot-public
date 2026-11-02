@@ -19,6 +19,12 @@
     return clean(el && (el.innerText || el.textContent));
   }
 
+  function isVisible(el) {
+    if (!el) return false;
+    const style = getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && el.getAttribute('aria-hidden') !== 'true';
+  }
+
   function findSection(label, preferredId) {
     if (preferredId) {
       const byId = document.querySelector(preferredId);
@@ -50,9 +56,7 @@
   }
 
   function extractProduct(section) {
-    if (!section) return '';
-
-    const text = sectionText(section);
+    const text = sectionText(section) || visibleText(document.body);
     const isTcgProduct = value => !!value && TCG.some(re => re.test(value)) && !/^(1点|一1点|対象店舗|購入権利)/.test(value);
 
     const quotedPatterns = [
@@ -67,7 +71,7 @@
       if (m && clean(m[1])) return clean(m[1]);
     }
 
-    const paragraphs = Array.from(section.querySelectorAll('p')).map(visibleText).filter(Boolean);
+    const paragraphs = Array.from((section || document.body).querySelectorAll('p')).map(visibleText).filter(Boolean);
     const labelIndex = paragraphs.findIndex(x => x.includes('商品情報'));
     if (labelIndex >= 0) {
       const parts = [];
@@ -108,12 +112,43 @@
     return section ? sectionText(section) : '';
   }
 
+  function findDetailPanel() {
+    const direct = document.querySelector('#detail, [id*="detail" i], [class*="detail" i]');
+    if (direct && isVisible(direct) && visibleText(direct)) return direct;
+
+    const tabs = Array.from(document.querySelectorAll('button,a,[role="tab"],li,[class*="tab" i]'))
+      .filter(isVisible);
+    const tab = tabs.find(el => clean(el.textContent) === '詳細');
+    if (!tab) return null;
+
+    const controls = tab.getAttribute('aria-controls');
+    if (controls) {
+      const panel = document.getElementById(controls);
+      if (panel) return panel;
+    }
+
+    const href = tab.getAttribute('href') || '';
+    if (href.startsWith('#')) {
+      const panel = document.querySelector(href);
+      if (panel) return panel;
+    }
+
+    let parent = tab.parentElement;
+    for (let depth = 0; parent && depth < 5; depth++, parent = parent.parentElement) {
+      const candidates = Array.from(parent.children || []);
+      const panel = candidates.find(el => el !== tab && isVisible(el) && visibleText(el).length > 40 && !/概要|詳細|受付・チケット情報/.test(visibleText(el).slice(0, 80)));
+      if (panel) return panel;
+    }
+
+    return null;
+  }
+
   function clickTab(label) {
-    const nodes = Array.from(document.querySelectorAll('button,a,[role="tab"],li,div'));
-    const target = nodes.find(el => clean(el.textContent) === label);
+    const nodes = Array.from(document.querySelectorAll('button,a,[role="tab"],li,div,[class*="tab" i]'));
+    const target = nodes.find(el => isVisible(el) && clean(el.textContent) === label);
     if (target) {
       try {
-        target.click();
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
         return true;
       } catch (_) {}
     }
@@ -122,13 +157,13 @@
 
   function capture() {
     const overviewSection = findSection('概要', '#overview');
-    const detailSection = findSection('詳細', '#detail');
+    const detailSection = findDetailPanel() || findSection('詳細', '#detail');
     const ticketsSection = findSection('受付・チケット情報', '#ticket');
     const overview = extractOverview(overviewSection);
     const detail = sectionText(detailSection);
     const tickets = extractTickets(ticketsSection);
     const product = extractProduct(detailSection);
-    const combined = [overview.text, detail, tickets].join(' ');
+    const combined = [overview.text, detail, tickets, visibleText(document.body)].join(' ');
     const tcg = TCG.some(re => re.test(combined));
 
     return {
@@ -157,12 +192,10 @@
     return;
   }
 
-  // LivePocket can lazy-render tab content. Open 詳細 once, then allow the DOM
-  // to settle before reading it. This remains DOM-only and makes no network request.
   clickTab('詳細');
 
   let attempts = 0;
-  const maxAttempts = 12;
+  const maxAttempts = 16;
   const retryMs = 500;
 
   function finishWhenReady() {
