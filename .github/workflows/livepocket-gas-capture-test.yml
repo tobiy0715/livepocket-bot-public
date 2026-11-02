@@ -1,0 +1,31 @@
+name: LivePocket GAS Capture Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  capture-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch GAS capture
+        env:
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
+        run: |
+          set -e
+          test -n "$GAS_CAPTURE_URL"
+          curl -fsSL --retry 3 --max-time 30 "$GAS_CAPTURE_URL" -o /tmp/capture.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('/tmp/capture.json', 'utf8'));
+          console.log(JSON.stringify({
+            ok: data.ok,
+            status: data.status,
+            capture: data.capture || null
+          }, null, 2));
+          if (!data.ok) process.exit(1);
+          NODE
