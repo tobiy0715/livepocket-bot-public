@@ -38,28 +38,45 @@ jobs:
           const c = data.capture;
 
           const sourceType = String(c.sourceType || c.source || '').trim().toLowerCase();
+          const url = String(c.url || '').trim();
           const isGoogleForms = sourceType === 'google_forms'
-            || /^https:\/\/docs\.google\.com\/forms\//i.test(String(c.url || ''));
+            || /^https:\/\/docs\.google\.com\/forms\//i.test(url);
+          const isLivePocket = sourceType === 'livepocket'
+            || /^https:\/\/livepocket\.jp\/e\//i.test(url)
+            || /^https:\/\/t\.livepocket\.jp\/e\//i.test(url);
+          const isGeneric = sourceType === 'generic'
+            || (!isGoogleForms && !isLivePocket && /^https?:\/\//i.test(url));
 
-          const basicOk = Boolean(c.url && c.product);
+          const basicOk = Boolean(url && c.product);
           const stores = Array.isArray(c.stores) ? c.stores.filter(Boolean) : [];
           const multiStoreOk = c.store === '複数店舗' || stores.length >= 2;
           const singleStoreOk = Boolean(c.prefecture && c.store && c.store !== '複数店舗');
           const googleFormsStoreOk = isGoogleForms && (multiStoreOk || singleStoreOk || c.route === '全国・オンライン');
+          const genericStoreOk = isGeneric && (
+            multiStoreOk ||
+            singleStoreOk ||
+            c.route === '全国・オンライン' ||
+            c.route === '都道府県不明' ||
+            c.store === 'オンラインショップ' ||
+            c.store === '店舗不明'
+          );
 
-          if (!basicOk || (!googleFormsStoreOk && !multiStoreOk && !singleStoreOk)) {
+          if (!basicOk || (!googleFormsStoreOk && !genericStoreOk && !multiStoreOk && !singleStoreOk)) {
             throw new Error('GAS capture is incomplete: ' + JSON.stringify(c));
           }
 
-          const normalizedSource = isGoogleForms ? 'google-forms-gas-v1' : 'livepocket-gas-v7';
+          const normalizedSource = isGoogleForms
+            ? 'google-forms-gas-v1'
+            : (isGeneric ? 'generic-gas-v1' : 'livepocket-gas-v7');
+          const normalizedSourceType = isGoogleForms ? 'google_forms' : (isGeneric ? 'generic' : 'livepocket');
           const route = String(c.route || '').trim()
             || (stores.length >= 2 ? '全国・オンライン' : String(c.prefecture || '').trim() || '都道府県不明');
 
           fs.writeFileSync('/tmp/livepocket_gas_capture.json', JSON.stringify({
             source: normalizedSource,
-            sourceType: isGoogleForms ? 'google_forms' : 'livepocket',
+            sourceType: normalizedSourceType,
             capturedAt: c.receivedAt || c.capturedAt || new Date().toISOString(),
-            url: String(c.url),
+            url,
             title: String(c.title || ''),
             product: String(c.product || ''),
             prefecture: String(c.prefecture || ''),
@@ -78,7 +95,7 @@ jobs:
             sourceDetail: String(c.source || '')
           }, null, 2) + '\n');
 
-          console.log('Bridge sourceType:', isGoogleForms ? 'google_forms' : 'livepocket');
+          console.log('Bridge sourceType:', normalizedSourceType);
           console.log('Bridge route:', route);
           console.log(fs.readFileSync('/tmp/livepocket_gas_capture.json', 'utf8'));
           NODE
