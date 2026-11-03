@@ -24,7 +24,12 @@ jobs:
         run: |
           set -e
           test -n "$GAS_CAPTURE_URL"
-          curl -fsSL --retry 3 --max-time 30 "$GAS_CAPTURE_URL" -o /tmp/capture.json
+          CACHE_BUST="bridge_ts=$(date +%s%3N)"
+          echo "Fetching GAS capture with cache-bust: $CACHE_BUST"
+          curl -fsSL --retry 3 --max-time 30 \
+            -H 'Cache-Control: no-cache' \
+            -H 'Pragma: no-cache' \
+            "$GAS_CAPTURE_URL?$CACHE_BUST" -o /tmp/capture.json
           node - <<'NODE'
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('/tmp/capture.json', 'utf8'));
