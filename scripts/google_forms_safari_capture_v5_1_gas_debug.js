@@ -19,7 +19,18 @@ function cleanStore(v){let s=clean(v);s=s.replace(new RegExp('\\s*[（(](?:'+PRE
 function extractStores(t,it){const out=[];const rx=/(?:対象店舗|販売店舗|店舗名|店舗|会場)/i;for(const x of it){if(!rx.test(x.label)&&!rx.test(x.description))continue;for(const v of [x.description,...x.options]){const s=cleanStore(v);if(s&&s.length>=2&&!/^(対象店舗|販売店舗|店舗名|店舗|会場)$/.test(s))out.push(s)}}for(const m of t.matchAll(/(?:＜|<|【|\[)\s*(?:対象店舗|販売店舗|店舗)\s*(?:＞|>|】|\])\s*[:：]?\s*([^\n]{2,140})/gi))out.push(cleanStore(m[1]));return uniq(out)}
 function extractProduct(t,it,ttl){for(const x of it){if(!/(対象商品|抽選商品|商品名|販売商品|賞品|商品情報)/i.test(x.label+' '+x.description))continue;const c=clean([x.description,...x.options].filter(Boolean).join(' ')).replace(/(?:抽選販売受付|抽選販売|抽選受付)(?:ページ)?(?:です)?[\s\S]*$/i,'').replace(/\s*(?:販売価格|価格|応募方法|お一人様|一人)\s*[：:]?[\s\S]*$/i,'').trim();if(c)return c}if(TCG.test(ttl))return ttl;return t.split(/\n/).map(clean).filter(x=>x&&x.length<220).find(x=>TCG.test(x))||''}
 function pref(t){const hits=PREFS.filter(p=>t.includes(p));return hits.length===1?hits[0]:''}
-function deadline(t,it){for(const x of it){if(/応募期間|受付期間|申込期間|応募期限|受付期限|申込期限/i.test(x.label)){const v=clean([x.description,...x.options].filter(Boolean).join(' '));if(v)return v}}const m=t.match(/(?:応募期間|受付期間|申込期間|応募期限|受付期限|申込期限)\s*[:：]?\s*([^【\n]{1,100})/i);return m?clean(m[1]):''}
+function deadline(t,it){
+  for(const x of it){
+    if(/応募期間|受付期間|申込期間|応募期限|受付期限|申込期限/i.test(x.label)){
+      let v=clean([x.description,...x.options].filter(Boolean).join(' '));
+      v=v.replace(/^[】〉》\]）)＞>]+\s*/,'').replace(/^[:：\-\s]+/,'').trim();
+      if(v)return v;
+    }
+  }
+  const m=t.match(/(?:応募期間|受付期間|申込期間|応募期限|受付期限|申込期限)\s*[:：]?\s*([^【\n]{1,100})/i);
+  if(!m)return '';
+  return clean(m[1]).replace(/^[】〉》\]）)＞>]+\s*/,'').trim();
+}
 function show(msg){document.body.innerHTML='<pre style="white-space:pre-wrap;font-size:16px;padding:20px">'+String(msg).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</pre>'}
 function run(){
   try{
