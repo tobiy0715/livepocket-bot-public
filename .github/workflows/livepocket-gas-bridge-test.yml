@@ -32,22 +32,35 @@ jobs:
           if (!data.capture) throw new Error('GAS capture is empty');
           const c = data.capture;
 
-          const basicOk = Boolean(c.url && c.product);
-          const multiStoreOk = c.store === '複数店舗';
-          const singleStoreOk = Boolean(c.prefecture && c.store && c.store !== '複数店舗');
+          const sourceType = String(c.sourceType || c.source || '').trim().toLowerCase();
+          const isGoogleForms = sourceType === 'google_forms'
+            || /^https:\/\/docs\.google\.com\/forms\//i.test(String(c.url || ''));
 
-          if (!basicOk || (!multiStoreOk && !singleStoreOk)) {
+          const basicOk = Boolean(c.url && c.product);
+          const stores = Array.isArray(c.stores) ? c.stores.filter(Boolean) : [];
+          const multiStoreOk = c.store === '複数店舗' || stores.length >= 2;
+          const singleStoreOk = Boolean(c.prefecture && c.store && c.store !== '複数店舗');
+          const googleFormsStoreOk = isGoogleForms && (multiStoreOk || singleStoreOk || c.route === '全国・オンライン');
+
+          if (!basicOk || (!googleFormsStoreOk && !multiStoreOk && !singleStoreOk)) {
             throw new Error('GAS capture is incomplete: ' + JSON.stringify(c));
           }
 
+          const normalizedSource = isGoogleForms ? 'google-forms-gas-v1' : 'livepocket-gas-v7';
+          const route = String(c.route || '').trim()
+            || (stores.length >= 2 ? '全国・オンライン' : String(c.prefecture || '').trim() || '都道府県不明');
+
           fs.writeFileSync('/tmp/livepocket_gas_capture.json', JSON.stringify({
-            source: 'livepocket-gas-v7',
+            source: normalizedSource,
+            sourceType: isGoogleForms ? 'google_forms' : 'livepocket',
             capturedAt: c.receivedAt || c.capturedAt || new Date().toISOString(),
             url: String(c.url),
             title: String(c.title || ''),
             product: String(c.product || ''),
             prefecture: String(c.prefecture || ''),
-            store: String(c.store || ''),
+            route,
+            store: String(c.store || (stores.length >= 2 ? '複数店舗' : '')),
+            stores,
             address: String(c.address || ''),
             overview: String(c.overview || ''),
             detail: String(c.detail || ''),
@@ -55,9 +68,13 @@ jobs:
             deadline: String(c.deadline || ''),
             tcg: c.tcg === true,
             complete: c.complete === true,
+            formItems: Number(c.formItems || 0),
+            publicData: c.publicData === true,
             sourceDetail: String(c.source || '')
           }, null, 2) + '\n');
 
+          console.log('Bridge sourceType:', isGoogleForms ? 'google_forms' : 'livepocket');
+          console.log('Bridge route:', route);
           console.log(fs.readFileSync('/tmp/livepocket_gas_capture.json', 'utf8'));
           NODE
 
@@ -71,7 +88,7 @@ jobs:
           if git -C data diff --cached --quiet; then
             echo "No bridge-state change."
           else
-            git -C data commit -m "chore: update LivePocket GAS capture bridge"
+            git -C data commit -m "chore: update GAS capture bridge"
             git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
             git -C data push origin main
           fi
