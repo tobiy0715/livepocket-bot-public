@@ -168,6 +168,8 @@ jobs:
         run: node scripts/patch_external_source_livepocket_accuracy_v2.js
       - name: Apply LivePocket identity extraction v3
         run: node scripts/patch_external_source_identity_v3.js
+      - name: Apply LivePocket detail tab extraction
+        run: node scripts/patch_external_source_livepocket_tabs_v1.js
       - name: Apply LivePocket URL cleanup
         run: node scripts/patch_livepocket_url_cleanup_v1.js
       - name: Apply raw LivePocket URL cleanup
