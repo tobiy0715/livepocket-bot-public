@@ -117,6 +117,7 @@ jobs:
           node scripts/patch_router_duplicate_notifications_v1.js
           node scripts/patch_router_stable_event_identity_v2.js
           node scripts/patch_router_livepocket_url_dedup_v1.js
+          node scripts/patch_router_event_identity_audit_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
