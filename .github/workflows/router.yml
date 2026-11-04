@@ -31,6 +31,7 @@ jobs:
           node --check scripts/patch_external_source_livepocket_accuracy_v2.js
           node --check scripts/patch_external_source_identity_v3.js
           node --check scripts/patch_external_source_candidate_scope_v1.js
+          node --check scripts/patch_external_source_pokeso_context_v1.js
           node --check scripts/patch_disable_redundant_deadline_audit_v1.js
           node --check scripts/patch_disable_redundant_deadline_audit_v3.js
           node --check scripts/patch_livepocket_url_cleanup_v1.js
@@ -108,6 +109,7 @@ jobs:
           node scripts/patch_rpg_role_autocreate_v1.js
           node scripts/patch_discord_messages_fallback_v2.js
           node scripts/patch_external_source_candidate_scope_v1.js
+          node scripts/patch_external_source_pokeso_context_v1.js
           node scripts/patch_trusted_structured_source_v1.js
           node scripts/patch_trusted_structured_source_v14.js
           node scripts/patch_trusted_structured_source_v14_final.js
