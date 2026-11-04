@@ -114,6 +114,7 @@ jobs:
           node scripts/patch_router_pending_relax_v1.js
           node scripts/patch_google_forms_routing_v1.js
           node scripts/patch_livepocket_unified_truth_v1.js
+          node scripts/patch_router_duplicate_notifications_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
