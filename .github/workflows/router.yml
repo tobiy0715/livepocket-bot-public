@@ -56,6 +56,8 @@ jobs:
           node --check scripts/patch_livepocket_generic_product_name_extractor_v1.js
           node --check scripts/patch_livepocket_explicit_tcg_scope_v1.js
           node --check scripts/patch_livepocket_multi_url_list_parser_v1.js
+          node --check scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
+          node --check scripts/patch_external_source_card_format_v2.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
@@ -95,6 +97,7 @@ jobs:
           node scripts/patch_evidence_hardening_v1.js
           node scripts/patch_routing_destination_v1.js
           node scripts/patch_reaction_cleanup.js
+          node scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
           node scripts/patch_pending_expiry.js
           node scripts/patch_pending_finalization.js
           node scripts/patch_allurls_regression.js
@@ -201,7 +204,7 @@ jobs:
       - name: Apply raw URL extraction cleanup
         run: node scripts/patch_raw_url_extraction_cleanup_v1.js
       - name: Apply external source card format
-        run: node scripts/patch_external_source_card_format_v1.js
+        run: node scripts/patch_external_source_card_format_v2.js
       - name: Apply external source candidate scope
         run: node scripts/patch_external_source_candidate_scope_v1.js
       - name: Collect external lottery URLs
