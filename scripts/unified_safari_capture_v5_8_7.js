@@ -1,5 +1,5 @@
 /*
- * Unified Safari Capture v5.8.7
+ * Unified Safari Capture v5.8.8
  * Auto-detects LivePocket / Google Forms / generic URL.
  * Normalizes all captures and posts one common payload to GAS via HTML form.
  * No credentials are stored in this public script.
@@ -28,7 +28,7 @@
     payload.secret = key;
     payload.captureId = 'cap-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
     payload.sourceType = sourceType;
-    payload.source = 'unified-safari-v5.8.6';
+    payload.source = 'unified-safari-v5.8.8';
     payload.url = String(payload.url || location.href).split('#')[0];
     payload.capturedAt = payload.capturedAt || new Date().toISOString();
     payload.title = payload.title || document.title || '';
@@ -43,15 +43,10 @@
     payload.tcg = !!payload.tcg;
     payload.complete = !!payload.complete;
 
-    var name = 'gas_sink_' + Date.now();
-    var frame = document.createElement('iframe');
-    frame.name = name; frame.style.display = 'none';
-    document.body.appendChild(frame);
-
     var finished = false;
-    var startedAt = Date.now();
     var pollTimer = null;
     var pollScript = null;
+    var postFinished = false;
     var timeoutId = setTimeout(function () {
       if (finished) return;
       finished = true;
@@ -104,16 +99,35 @@
       }
     };
 
-    var form = document.createElement('form');
-    form.method = 'POST'; form.action = GAS_URL; form.target = name; form.style.display = 'none';
-    var input = document.createElement('input');
-    input.type = 'hidden'; input.name = 'payload'; input.value = JSON.stringify(payload);
-    form.appendChild(input); document.body.appendChild(form);
+    // Send raw JSON directly. GAS doPost reads e.postData.contents.
+    // no-cors avoids Safari cross-origin response restrictions; save is
+    // independently confirmed through the JSONP captureId check below.
     try {
-      form.submit();
-      pollTimer = setTimeout(poll, 1200);
+      if (typeof fetch !== 'function') {
+        finish(false, {error: 'FETCH_NOT_SUPPORTED'});
+        return;
+      }
+
+      fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8'
+        },
+        body: JSON.stringify(payload)
+      }).then(function () {
+        postFinished = true;
+        if (finished) return;
+        poll();
+      }).catch(function (error) {
+        finish(false, {
+          error: 'POST_FAILED: ' + String(error)
+        });
+      });
     } catch (e) {
-      finish(false, {error: String(e)});
+      finish(false, {
+        error: 'POST_START_FAILED: ' + String(e)
+      });
     }
   }
 
