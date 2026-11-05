@@ -7,7 +7,7 @@
   'use strict';
 
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec';
-  var EXTRACTOR_URL = 'https://cdn.jsdelivr.net/gh/tobiy0715/livepocket-bot-public@9b1e29f88c5e153f43a33225b407a5214e17655f/scripts/livepocket_safari_capture_v5_8_1_product_tail_fix.js';
+  var EXTRACTOR_URL = 'https://cdn.jsdelivr.net/gh/tobiy0715/livepocket-bot-public@main/scripts/livepocket_safari_capture_v5_8_product_clean.js';
 
   if (!/^https?:\/\/(?:www\.)?livepocket\.jp\//i.test(location.href)) {
     alert('LivePocketのイベント詳細ページで実行してください。');
