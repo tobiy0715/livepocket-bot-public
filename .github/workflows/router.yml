@@ -58,6 +58,7 @@ jobs:
           node --check scripts/patch_livepocket_multi_url_list_parser_v1.js
           node --check scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
           node --check scripts/patch_external_source_card_format_v2.js
+          node --check scripts/patch_lightbulb_reaction_delete_retry_v2.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
@@ -98,6 +99,7 @@ jobs:
           node scripts/patch_routing_destination_v1.js
           node scripts/patch_reaction_cleanup.js
           node scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
+          node scripts/patch_lightbulb_reaction_delete_retry_v2.js
           node scripts/patch_pending_expiry.js
           node scripts/patch_pending_finalization.js
           node scripts/patch_allurls_regression.js
