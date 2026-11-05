@@ -57,6 +57,7 @@ jobs:
           node --check scripts/patch_livepocket_explicit_tcg_scope_v1.js
           node --check scripts/patch_livepocket_tcg_label_priority_v1.js
           node --check scripts/patch_livepocket_explicit_field_evidence_v1.js
+          node --check scripts/patch_livepocket_post_relative_deadline_v1.js
           node --check scripts/patch_livepocket_multi_url_list_parser_v1.js
           node --check scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
           node --check scripts/patch_external_source_card_format_v2.js
