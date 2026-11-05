@@ -9,8 +9,8 @@
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec';
   var BASE = 'https://cdn.jsdelivr.net/gh/tobiy0715/livepocket-bot-public@main/scripts/';
   var host = location.hostname.toLowerCase();
-  var sourceType = /(^|\\.)livepocket\\.jp$/.test(host) ? 'livepocket' :
-    /(^|\\.)docs\\.google\\.com$/.test(host) && /\\/forms\\//i.test(location.pathname) ? 'google_forms' : 'generic';
+  var sourceType = /(^|\.)livepocket\.jp$/.test(host) ? 'livepocket' :
+    /(^|\.)docs\.google\.com$/.test(host) && /\/forms\//i.test(location.pathname) ? 'google_forms' : 'generic';
   var key = window.prompt('GAS送信用キーを入力してください（公開コードには保存されません）。');
   if (!key) { alert('送信を中止しました。'); return; }
   var completed = false;
@@ -27,8 +27,8 @@
     payload.url = String(payload.url || location.href).split('#')[0];
     payload.capturedAt = payload.capturedAt || new Date().toISOString();
     payload.title = payload.title || document.title || '';
-    payload.product = String(payload.product || '').replace(/\\s*(?:○|〇|◯)?\\s*商品情報[：:]?[\\s\\S]*$/i, '').replace(/(?:抽選販売受付|抽選販売|抽選受付)(?:ページ)?(?:です)?[\\s\\S]*$/i, '').trim();
-    payload.store = String(payload.store || '').replace(/\\s+(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)\\s*$/, '').trim();
+    payload.product = String(payload.product || '').replace(/\s*(?:○|〇|◯)?\s*商品情報[：:]?[\s\S]*$/i, '').replace(/(?:抽選販売受付|抽選販売|抽選受付)(?:ページ)?(?:です)?[\s\S]*$/i, '').trim();
+    payload.store = String(payload.store || '').replace(/\s+(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)\s*$/, '').trim();
     payload.stores = Array.isArray(payload.stores) ? payload.stores : [];
     payload.prefecture = payload.prefecture || '';
     payload.route = payload.route || payload.prefecture || '';
@@ -73,7 +73,7 @@
     var data = null;
     Array.prototype.forEach.call(document.scripts, function (s) {
       if (data) return;
-      var m = (s.textContent || '').match(/FB_PUBLIC_LOAD_DATA_\\s*=\\s*(\\[.*\\])\\s*;/s);
+      var m = (s.textContent || '').match(/FB_PUBLIC_LOAD_DATA_\s*=\s*(\[.*\])\s*;/s);
       if (m) { try { data = JSON.parse(m[1]); } catch (_) {} }
     });
     var items = [];
@@ -95,8 +95,8 @@
     var pitem = items.find(function (x) { return /対象商品|抽選商品|商品名|販売商品|賞品|商品情報/i.test(x.label + ' ' + x.description); });
     if (pitem) product = [pitem.description].concat(pitem.options).filter(Boolean).join(' ').trim();
     if (!product) {
-      var line = all.split(/\\n/).map(function (x) { return x.trim(); }).find(function (x) {
-        return /ポケモンカード|ポケカ|ワンピースカード|ONE\\s*PIECE|ドラゴンボール|遊戯王/i.test(x);
+      var line = all.split(/\n/).map(function (x) { return x.trim(); }).find(function (x) {
+        return /ポケモンカード|ポケカ|ワンピースカード|ONE\s*PIECE|ドラゴンボール|遊戯王/i.test(x);
       });
       product = line || '';
     }
@@ -104,7 +104,7 @@
     var prefHits = prefs.filter(function (p) { return all.indexOf(p) >= 0; });
     var storeItem = items.find(function (x) { return /対象店舗|販売店舗|店舗名|店舗|会場/i.test(x.label + ' ' + x.description); });
     var stores = storeItem ? [storeItem.description].concat(storeItem.options).map(function (x) { return String(x || '').trim(); }).filter(Boolean) : [];
-    var tcg = /ポケモンカード|ポケカ|ワンピースカード|ONE\\s*PIECE|ドラゴンボール|遊戯王/i.test(all);
+    var tcg = /ポケモンカード|ポケカ|ワンピースカード|ONE\s*PIECE|ドラゴンボール|遊戯王/i.test(all);
     send({ok:true, url:location.href, title:title, product:product, store:stores[0] || '',
       stores:stores, prefecture:prefHits.length === 1 ? prefHits[0] : '',
       route:/オンライン|WEB応募|通販|ネット販売/i.test(all) ? '全国・オンライン' : (prefHits[0] || '都道府県不明'),
