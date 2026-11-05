@@ -282,7 +282,23 @@ jobs:
           if ! git -C data diff --cached --quiet; then
             git -C data commit -m "chore: update router state"
             git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
-            git -C data push origin main
+            for attempt in 1 2 3; do
+              git -C data fetch origin main
+              if ! git -C data rebase origin/main; then
+                git -C data rebase --abort || true
+                echo "STATE_REBASE_CONFLICT: concurrent state changes require safe manual reconciliation; refusing to overwrite."
+                exit 1
+              fi
+              if git -C data push origin HEAD:main; then
+                echo "Private state saved after attempt $attempt."
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "STATE_PUSH_RETRIES_EXHAUSTED: refusing force-push."
+                exit 1
+              fi
+              sleep "$attempt"
+            done
           else
             echo "No private state changes."
           fi
