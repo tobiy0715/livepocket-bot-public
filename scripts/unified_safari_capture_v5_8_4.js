@@ -27,8 +27,8 @@
     payload.url = String(payload.url || location.href).split('#')[0];
     payload.capturedAt = payload.capturedAt || new Date().toISOString();
     payload.title = payload.title || document.title || '';
-    payload.product = payload.product || '';
-    payload.store = payload.store || '';
+    payload.product = String(payload.product || '').replace(/\\s*(?:○|〇|◯)?\\s*商品情報[：:]?[\\s\\S]*$/i, '').replace(/(?:抽選販売受付|抽選販売|抽選受付)(?:ページ)?(?:です)?[\\s\\S]*$/i, '').trim();
+    payload.store = String(payload.store || '').replace(/\\s+(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)\\s*$/, '').trim();
     payload.stores = Array.isArray(payload.stores) ? payload.stores : [];
     payload.prefecture = payload.prefecture || '';
     payload.route = payload.route || payload.prefecture || '';
@@ -114,7 +114,7 @@
   }
 
   if (sourceType === 'livepocket') {
-    load(BASE + 'livepocket_safari_capture_v5_8_1_product_tail_fix.js',
+    load(BASE + 'livepocket_safari_capture_v5_8_product_clean.js',
       'LivePocket抽出スクリプトの読み込みに失敗しました。');
   } else if (sourceType === 'google_forms') {
     googleFormsCapture();
