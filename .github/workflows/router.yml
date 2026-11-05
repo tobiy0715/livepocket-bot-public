@@ -221,6 +221,43 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
+      - name: Fetch latest capture from LivePocket GAS gate
+        env:
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+        run: |
+          set -euo pipefail
+          test -n "$GAS_CAPTURE_URL"
+          curl --fail --location --silent --show-error --max-time 30 "$GAS_CAPTURE_URL" -o /tmp/livepocket_gas_response.json
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const responsePath = '/tmp/livepocket_gas_response.json';
+          const targetPath = path.join(process.cwd(), 'data', 'livepocket_gas_capture.json');
+          const response = JSON.parse(fs.readFileSync(responsePath, 'utf8'));
+          if (response.ok !== true) {
+            throw new Error('GAS gate returned ok=false: ' + JSON.stringify(response).slice(0, 500));
+          }
+          if (!response.capture) {
+            if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath);
+            console.log('GAS_PULL: no capture available; stale local capture removed');
+            process.exit(0);
+          }
+          const capture = response.capture;
+          if (typeof capture !== 'object' || Array.isArray(capture)) {
+            throw new Error('GAS gate capture must be a JSON object');
+          }
+          if (!capture.url || !capture.sourceType || !capture.capturedAt) {
+            throw new Error('GAS gate capture missing required fields: url/sourceType/capturedAt');
+          }
+          fs.writeFileSync(targetPath, JSON.stringify(capture, null, 2) + '\n', 'utf8');
+          console.log('GAS_PULL: received and saved');
+          console.log('GAS_PULL_SOURCE: ' + String(capture.sourceType));
+          console.log('GAS_PULL_URL: ' + String(capture.url));
+          console.log('GAS_PULL_CAPTURED_AT: ' + String(capture.capturedAt));
+          console.log('GAS_PULL_PRODUCT_PRESENT: ' + Boolean(capture.product));
+          console.log('GAS_PULL_STORE_PRESENT: ' + Boolean(capture.store));
+          console.log('GAS_PULL_PREFECTURE_PRESENT: ' + Boolean(capture.prefecture));
+          NODE
       - name: Ingest LivePocket GAS structured capture
         run: node scripts/ingest_livepocket_gas_capture_v1.js
       - name: Syntax Check
