@@ -22,6 +22,7 @@
     var payload = {};
     Object.keys(data).forEach(function (k) { payload[k] = data[k]; });
     payload.secret = key;
+    payload.captureId = 'cap-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
     payload.sourceType = sourceType;
     payload.source = 'unified-safari-v5.8.4';
     payload.url = String(payload.url || location.href).split('#')[0];
@@ -42,6 +43,29 @@
     var frame = document.createElement('iframe');
     frame.name = name; frame.style.display = 'none';
     document.body.appendChild(frame);
+    var acknowledged = false;
+    var timeoutId = setTimeout(function () {
+      if (acknowledged) return;
+      window.removeEventListener('message', onGasAck);
+      alert('GAS受信確認ができませんでした。\n送信された可能性はありますが、保存成功は未確認です。\n受付ID：' + payload.captureId);
+    }, 20000);
+    function onGasAck(ev) {
+      var d = ev && ev.data;
+      if (!d || d.type !== 'GAS_CAPTURE_ACK' || d.captureId !== payload.captureId) return;
+      if (ev.source !== frame.contentWindow) return;
+      acknowledged = true;
+      clearTimeout(timeoutId);
+      window.removeEventListener('message', onGasAck);
+      if (d.ok === true) {
+        alert('GAS受信・保存成功！\n種類：' + sourceType + '\n受付ID：' + payload.captureId +
+          '\n商品：' + (payload.product || '未取得') + '\n店舗：' + (payload.store || '未取得') +
+          '\n都道府県：' + (payload.prefecture || '未取得'));
+      } else {
+        alert('GAS受信失敗：' + String(d.error || 'UNKNOWN_ERROR') +
+          '\n受付ID：' + payload.captureId);
+      }
+    }
+    window.addEventListener('message', onGasAck);
     var form = document.createElement('form');
     form.method = 'POST'; form.action = GAS_URL; form.target = name; form.style.display = 'none';
     var input = document.createElement('input');
@@ -49,11 +73,9 @@
     form.appendChild(input); document.body.appendChild(form);
     try {
       form.submit();
-      alert('抽出完了：' + sourceType + '\n商品：' + (payload.product || '未取得') +
-        '\n店舗：' + (payload.store || '未取得') + '\n都道府県：' + (payload.prefecture || '未取得') +
-        '\n\nGAS送信フォームを送出しました。受信確認はGitHub Actionsで行います。');
     } catch (e) {
-      completed = false;
+      clearTimeout(timeoutId);
+      window.removeEventListener('message', onGasAck);
       alert('GAS送信フォームの送出に失敗：' + String(e));
     }
   }
