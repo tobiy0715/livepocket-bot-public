@@ -53,6 +53,7 @@ jobs:
           node --check scripts/patch_livepocket_exact_code_search_evidence_guard_v1.js
           node --check scripts/patch_livepocket_heroines_product_evidence_guard_v1.js
           node --check scripts/patch_livepocket_op18_product_evidence_v1.js
+          node --check scripts/patch_livepocket_generic_product_name_extractor_v1.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
@@ -134,6 +135,7 @@ jobs:
           node scripts/patch_livepocket_exact_code_search_evidence_guard_v1.js
           node scripts/patch_livepocket_heroines_product_evidence_guard_v1.js
           node scripts/patch_livepocket_op18_product_evidence_v1.js
+          node scripts/patch_livepocket_generic_product_name_extractor_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
