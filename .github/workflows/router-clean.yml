@@ -170,12 +170,34 @@ jobs:
           if ! git -C data diff --cached --quiet; then
             git -C data commit -m "chore: update router state"
             git -C data remote set-url origin "https://x-access-token:${ROUTER_REPO_TOKEN}@github.com/tobiy0715/livepocket-bot-data.git"
+            # Keep this run's complete local snapshot so a conflicting state file can be merged.
+            if [ -f data/external_source_state.json ]; then
+              cp data/external_source_state.json /tmp/external_source_state.local.json
+            fi
             for attempt in 1 2 3; do
               git -C data fetch origin main
               if ! git -C data rebase origin/main; then
-                git -C data rebase --abort || true
-                echo "STATE_REBASE_CONFLICT: concurrent state changes require safe manual reconciliation; refusing to overwrite."
-                exit 1
+                conflicted=$(git -C data diff --name-only --diff-filter=U)
+                if [ "$conflicted" = "external_source_state.json" ] && [ -f /tmp/external_source_state.local.json ]; then
+                  echo "STATE_MERGE: resolving external_source_state.json with safe URL-level merge."
+                  git -C data show origin/main:external_source_state.json > /tmp/external_source_state.remote.json
+                  node scripts/merge_external_source_state_v1.js \
+                    /tmp/external_source_state.remote.json \
+                    /tmp/external_source_state.local.json \
+                    /tmp/external_source_state.merged.json
+                  cp /tmp/external_source_state.merged.json data/external_source_state.json
+                  git -C data add external_source_state.json
+                  if ! GIT_EDITOR=true git -C data rebase --continue; then
+                    git -C data rebase --abort || true
+                    echo "STATE_MERGE_REBASE_FAILED: refusing to overwrite."
+                    exit 1
+                  fi
+                else
+                  git -C data rebase --abort || true
+                  echo "STATE_REBASE_CONFLICT: non-mergeable files changed concurrently; refusing to overwrite."
+                  printf '%s\n' "$conflicted"
+                  exit 1
+                fi
               fi
               if git -C data push origin HEAD:main; then
                 echo "Private state saved after attempt $attempt."
