@@ -93,21 +93,38 @@ jobs:
         run: |
           set -e
           node scripts/patch_submission_history_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_submission_history_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_submission_channel_resolver_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_submission_channel_resolver_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_public_page_fallback.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_public_page_fallback=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_livepocket_request_scope_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_livepocket_request_scope_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_prefecture_v5.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_prefecture_v5=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_livepocket_core_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_livepocket_core_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_url_scope_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_url_scope_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_evidence_hardening_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_evidence_hardening_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_routing_destination_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_routing_destination_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_reaction_cleanup.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_reaction_cleanup=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_lightbulb_superseded_reaction_cleanup_v1=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_lightbulb_reaction_delete_retry_v2.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_lightbulb_reaction_delete_retry_v2=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_pending_expiry.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_pending_expiry=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_pending_finalization.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_pending_finalization=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_allurls_regression.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_allurls_regression=" + s.includes("async function processSubmittedUrls("))'
           node scripts/patch_pending_comment_priority.js
+          node -e 'const s=require("fs").readFileSync("bot/index.js","utf8"); console.log("PROCESS_FN_CHECK after patch_pending_comment_priority=" + s.includes("async function processSubmittedUrls("))'
+
           node scripts/patch_comment_reaction.js
           node scripts/patch_role_panel_marker.js
           node scripts/patch_reaction_role_speed_v1.js
