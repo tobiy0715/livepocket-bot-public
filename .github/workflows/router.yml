@@ -171,7 +171,6 @@ jobs:
           node scripts/patch_livepocket_post_relative_deadline_v1.js
           node scripts/patch_livepocket_multi_url_list_parser_v1.js
           node scripts/patch_router_efficiency_24h_v1.js
-          node scripts/patch_final_event_identity_sanitizer_v1.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -279,6 +278,11 @@ jobs:
           NODE
       - name: Ingest LivePocket GAS structured capture
         run: node scripts/ingest_livepocket_gas_capture_v1.js
+      - name: Apply final event identity sanitizer after all extraction patches
+        run: |
+          set -e
+          node --check scripts/patch_final_event_identity_sanitizer_v1.js
+          node scripts/patch_final_event_identity_sanitizer_v1.js
       - name: Syntax Check
         run: node --check bot/index.js
       - name: Router Bot
