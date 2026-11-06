@@ -18,7 +18,7 @@ jobs:
         with:
           repository: tobiy0715/livepocket-bot
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
-          ref: main
+          ref: fix/pending-finalization-missing-classifier
           fetch-depth: 0
       - name: Verify private Router source revision
         run: |
