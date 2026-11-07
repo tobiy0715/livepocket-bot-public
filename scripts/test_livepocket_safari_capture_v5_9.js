@@ -62,7 +62,7 @@ function runCapture({ overview, detail, tickets }) {
   assert.equal(output.store, '蔦屋書店茂原店 トレカコーナー');
   assert.equal(output.prefecture, '千葉県');
   assert.equal(output.route, '千葉県');
-  assert.equal(output.source, 'livepocket-safari-dom-v5.9');
+  assert.equal(output.source, 'livepocket-safari-dom-v5.9.1');
 }
 
 // Conflicting prefectures without a venue-scoped answer must remain unresolved.
