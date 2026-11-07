@@ -1,0 +1,27 @@
+name: LivePocket Safari Capture Regression
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/livepocket_safari_capture_v5_8_product_clean.js'
+      - 'scripts/test_livepocket_safari_capture_v5_9.js'
+      - '.github/workflows/livepocket-safari-capture-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safari-capture-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: |
+          node --check scripts/livepocket_safari_capture_v5_8_product_clean.js
+          node --check scripts/test_livepocket_safari_capture_v5_9.js
+      - name: Run isolated DOM regression tests
+        run: node scripts/test_livepocket_safari_capture_v5_9.js
