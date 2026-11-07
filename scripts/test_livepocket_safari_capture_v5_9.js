@@ -62,7 +62,7 @@ function runCapture({ overview, detail, tickets }) {
   assert.equal(output.store, '蔦屋書店茂原店 トレカコーナー');
   assert.equal(output.prefecture, '千葉県');
   assert.equal(output.route, '千葉県');
-  assert.equal(output.source, 'livepocket-safari-dom-v5.9.1');
+  assert.equal(output.source, 'livepocket-safari-dom-v5.9.2');
 }
 
 // Conflicting prefectures without a venue-scoped answer must remain unresolved.
@@ -86,6 +86,18 @@ function runCapture({ overview, detail, tickets }) {
   assert.equal(output.product, 'ポケモンカードゲーム「拡張パック 蒼空ストリーム」');
   assert.equal(output.store, '蔦屋書店茂原店');
   assert.equal(output.prefecture, '千葉県');
+}
+
+// Explicit store labels in detail override unrelated prefecture mentions.
+{
+  const output = runCapture({
+    overview: '概要\\n開催案内：東京都内の店舗でも実施予定',
+    detail: '詳細\\n対象商品：ポケモンカードゲーム 拡張パック\\n店舗名：蔦屋書店茂原店（千葉県）\\n補足：東京都からのお知らせ',
+    tickets: '受付・チケット情報\\n抽選受付期間：2026年11月1日〜'
+  });
+  assert.equal(output.store, '蔦屋書店茂原店');
+  assert.equal(output.prefecture, '千葉県');
+  assert.equal(output.route, '千葉県');
 }
 
 console.log('[SAFARI_CAPTURE_V5_9_REGRESSION] PASS');
