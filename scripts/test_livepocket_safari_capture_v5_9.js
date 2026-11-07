@@ -76,4 +76,16 @@ function runCapture({ overview, detail, tickets }) {
   assert.equal(output.route, '都道府県不明');
 }
 
+// LivePocket sometimes renders the product label and value on separate DOM lines.
+{
+  const output = runCapture({
+    overview: '概要\n会場：蔦屋書店茂原店（千葉県）',
+    detail: '詳細\n対象商品：\nポケモンカードゲーム「拡張パック 蒼空ストリーム」\n店舗名：蔦屋書店茂原店',
+    tickets: '受付・チケット情報\n販売受付期間：2026年11月4日(水) 16:46〜2026年11月7日(土) 22:00'
+  });
+  assert.equal(output.product, 'ポケモンカードゲーム「拡張パック 蒼空ストリーム」');
+  assert.equal(output.store, '蔦屋書店茂原店');
+  assert.equal(output.prefecture, '千葉県');
+}
+
 console.log('[SAFARI_CAPTURE_V5_9_REGRESSION] PASS');
