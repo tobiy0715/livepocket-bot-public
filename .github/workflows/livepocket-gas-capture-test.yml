@@ -29,3 +29,18 @@ jobs:
           }, null, 2));
           if (!data.ok) process.exit(1);
           NODE
+
+  safari-capture-regression:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: |
+          node --check scripts/livepocket_safari_capture_v5_8_product_clean.js
+          node --check scripts/test_livepocket_safari_capture_v5_9.js
+      - name: Run isolated DOM regression tests
+        run: node scripts/test_livepocket_safari_capture_v5_9.js
