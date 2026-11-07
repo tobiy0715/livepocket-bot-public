@@ -1,6 +1,11 @@
 name: LivePocket GAS Capture Test
 
 on:
+  pull_request:
+    paths:
+      - 'scripts/livepocket_safari_capture_v5_8_product_clean.js'
+      - 'scripts/test_livepocket_safari_capture_v5_9.js'
+      - '.github/workflows/livepocket-gas-capture-test.yml'
   workflow_dispatch:
   schedule:
     - cron: "*/10 * * * *"
@@ -10,6 +15,7 @@ permissions:
 
 jobs:
   capture-test:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Fetch GAS capture
