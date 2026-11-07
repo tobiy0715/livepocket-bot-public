@@ -1,5 +1,5 @@
 /*
- * LivePocket iPhone Safari DOM capture v5.8
+ * LivePocket iPhone Safari DOM capture v5.9.0
  * Based on v5.7.
  * Fixes: 商品情報 tail cleanup, 抽選受付 tail cleanup.
  */
@@ -18,7 +18,7 @@ const uniq=a=>[...new Set(a.map(clean).filter(Boolean))];
 function clickLabel(label){const els=Array.from(document.querySelectorAll('button,a,[role="tab"],li,div')).filter(e=>vis(e)&&clean(e.textContent)===label);if(!els.length)return false;try{els[0].click();return true}catch(_){}try{els[0].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));return true}catch(_){}return false;}
 function sec(label,id){const x=id&&document.querySelector(id);if(x&&vis(x)&&txt(x))return x;return Array.from(document.querySelectorAll('section,main,article,div')).find(e=>vis(e)&&clean(e.textContent).startsWith(label)&&clean(e.textContent).length>label.length)||null;}
 function detail(){const d=document.querySelector('#detail');if(d&&vis(d)&&txt(d))return d;const p=Array.from(document.querySelectorAll('[role="tabpanel"]')).find(e=>vis(e)&&/詳細/.test(txt(e)));return p||sec('詳細','#detail');}
-function overview(){const e=sec('概要','#overview');return txt(e)||txt(document.body);}
+function overview(){const e=sec('概要','#overview');return rawTxt(e)||rawTxt(document.body);}
 function jsonLd(){const out=[];document.querySelectorAll('script[type="application/ld+json"]').forEach(s=>{try{const v=JSON.parse(s.textContent||'');const walk=x=>{if(!x||typeof x!=='object')return;if(Array.isArray(x)){x.forEach(walk);return;}if(typeof x.name==='string')out.push(x.name);Object.keys(x).forEach(k=>{if(k!=='name'&&typeof x[k]==='object')walk(x[k]);});};walk(v);}catch(_){}});return uniq(out);}
 function meta(){const out=[];document.querySelectorAll('meta[property="og:title"],meta[name="twitter:title"],meta[name="title"],meta[itemprop="name"]').forEach(e=>{if(e.content)out.push(e.content);});document.querySelectorAll('img[alt],img[title],[aria-label],[title]').forEach(e=>{const v=e.getAttribute('alt')||e.getAttribute('title')||e.getAttribute('aria-label');if(v)out.push(v);});return uniq(out);}
 function headings(root){const out=[],base=root||document;const sel='h1,h2,h3,h4,h5,strong,b,[class*="product" i],[class*="goods" i],[class*="item" i],[class*="prize" i],[class*="title" i]';base.querySelectorAll(sel).forEach(e=>{if(vis(e)){const v=txt(e);if(v&&v.length<=220)out.push(v);}});return uniq(out);}
