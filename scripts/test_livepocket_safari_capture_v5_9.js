@@ -69,8 +69,8 @@ function runCapture({ overview, detail, tickets }) {
 {
   const output = runCapture({
     overview: '概要\n開催情報：岐阜県の店舗',
-    detail: '詳細\n対象商品：ワンピースカードゲーム ブースターパック',
-    tickets: '受付・チケット情報\n東京都からも応募可能'
+    detail: '詳細\n対象商品：ワンピースカードゲーム ブースターパック\n開催情報：東京都の店舗',
+    tickets: '受付・チケット情報\n抽選受付期間：2026年11月1日〜'
   });
   assert.equal(output.prefecture, '都道府県不明');
   assert.equal(output.route, '都道府県不明');
