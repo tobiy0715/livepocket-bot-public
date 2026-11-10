@@ -93,6 +93,8 @@ jobs:
           node --check scripts/test_rpg_point_idempotency_v1.js
           node --check scripts/test_discord_messages_fallback_v3.js
           node scripts/test_discord_messages_fallback_v3.js
+          node --check scripts/patch_url_reaction_audit_refresh_v5.js
+          node --check scripts/test_url_reaction_audit_refresh_v5.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
           node --check bot/index.js
       - name: Apply Router compatibility patches
@@ -143,6 +145,9 @@ jobs:
           node scripts/patch_deadline_audit_v4.js
           node scripts/patch_disable_redundant_deadline_audit_v1.js
           node scripts/patch_disable_redundant_deadline_audit_v3.js
+          node scripts/patch_url_reaction_audit_refresh_v5.js
+          node --check bot/index.js
+          node scripts/test_url_reaction_audit_refresh_v5.js
           node scripts/patch_livepocket_url_cleanup_v1.js
           node scripts/patch_raw_livepocket_url_cleanup_v3.js
           node scripts/patch_raw_url_extraction_cleanup_v1.js
