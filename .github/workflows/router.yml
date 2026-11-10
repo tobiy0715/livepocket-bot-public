@@ -156,8 +156,6 @@ jobs:
           node scripts/patch_point_game_v2.js
           node scripts/patch_create_point_result_comment_dedup_v1.js
           node scripts/test_create_point_result_comment_dedup_v1.js
-          node scripts/patch_rpg_point_idempotency_v1.js
-          node scripts/test_rpg_point_idempotency_v1.js
           node scripts/patch_rpg_test_v1.js
           node scripts/patch_rpg_role_autocreate_v1.js
           node scripts/patch_discord_messages_fallback_v2.js
@@ -300,6 +298,12 @@ jobs:
           set -e
           node --check scripts/patch_final_event_identity_sanitizer_v1.js
           node scripts/patch_final_event_identity_sanitizer_v1.js
+      - name: Apply final RPG point idempotency after all Router rewrites
+        run: |
+          set -e
+          node scripts/patch_rpg_point_idempotency_v1.js
+          node scripts/test_rpg_point_idempotency_v1.js
+          node --check bot/index.js
       - name: Syntax Check
         run: node --check bot/index.js
       - name: Router Bot
