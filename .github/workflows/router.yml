@@ -88,6 +88,9 @@ jobs:
           node --check scripts/collect_external_sources_v1.js
           node --check scripts/normalize_external_source_state_v1.js
           node --check scripts/test_channel_routing_completion_v1.js
+          node --check scripts/routing_completion_policy_v1.js
+          node --check scripts/test_routing_completion_policy_v1.js
+          node scripts/test_routing_completion_policy_v1.js
           node --check scripts/test_reaction_status_audit_guard_v1.js
           node --check scripts/test_create_point_result_comment_dedup_v1.js
           node --check scripts/test_rpg_point_idempotency_v1.js
