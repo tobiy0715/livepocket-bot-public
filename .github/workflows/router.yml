@@ -264,6 +264,14 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
+      - name: Import pending LivePocket URLs from GAS queue
+        if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
+        env:
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
+        run: |
+          set -euo pipefail
+          node scripts/gas_url_queue_client_v1.js import data
       - name: Fetch latest capture from LivePocket GAS gate
         env:
           GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
@@ -324,6 +332,14 @@ jobs:
           GAS_FIELD_ENRICHMENT_ENABLED: "true"
           ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx,63x1l
         run: node bot/index.js
+      - name: Acknowledge processed LivePocket GAS queue items
+        if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
+        env:
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
+        run: |
+          set -euo pipefail
+          node scripts/gas_url_queue_client_v1.js ack data
       - name: Test channel routing completion lightbulb
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
