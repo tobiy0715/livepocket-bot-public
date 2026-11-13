@@ -2,6 +2,8 @@ name: TCG Discord Router Bot
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
 
 concurrency:
   group: tcg-main-writer
@@ -189,6 +191,8 @@ jobs:
           node scripts/patch_livepocket_post_relative_deadline_v1.js
           node scripts/patch_livepocket_multi_url_list_parser_v1.js
           node scripts/patch_router_efficiency_24h_v1.js
+          node scripts/patch_livepocket_gas_field_enrichment_v1.js
+          node --check bot/index.js
       - name: Resolve Discord runtime configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -312,6 +316,9 @@ jobs:
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
+          GAS_FIELD_ENRICHMENT_ENABLED: "true"
           ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx,63x1l
         run: node bot/index.js
       - name: Test channel routing completion lightbulb
