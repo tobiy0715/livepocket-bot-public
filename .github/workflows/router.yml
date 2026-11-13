@@ -166,6 +166,7 @@ jobs:
           node scripts/patch_auto_source_channel_v1.js
           node scripts/patch_auto_source_channel_v2.js
           node scripts/patch_point_game_v2.js
+          node scripts/test_point_game_v2_scoring.js
           node scripts/patch_create_point_result_comment_dedup_v1.js
           node scripts/test_create_point_result_comment_dedup_v1.js
           node scripts/patch_rpg_test_v1.js
