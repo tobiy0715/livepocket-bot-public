@@ -101,6 +101,9 @@ jobs:
           node --check scripts/patch_url_reaction_audit_refresh_v5.js
           node --check scripts/test_url_reaction_audit_refresh_v5.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
+          node --check scripts/gas_field_enrichment_client_v1.js
+          node --check scripts/test_gas_field_enrichment_client_v1.js
+          node scripts/test_gas_field_enrichment_client_v1.js
           node --check bot/index.js
       - name: Apply Router compatibility patches
         run: |
