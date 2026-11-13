@@ -20,8 +20,8 @@ jobs:
         with:
           repository: tobiy0715/livepocket-bot
           token: ${{ secrets.ROUTER_REPO_TOKEN }}
-          # Temporarily consume the verified private RPG patch branch until it is merged.
-          ref: fix/rpg-idempotency-preserve-anchor-offsets-v1
+          # Consume the verified private Router source from main.
+          ref: main
           fetch-depth: 0
       - name: Verify private Router source revision
         run: |
