@@ -23,6 +23,8 @@ function execute(raw, existingCapture = true) {
     require,
     fs,
     path,
+    responsePath,
+    targetPath,
     process: { cwd: () => dir, exit: code => { exitCode = code; throw new Error("__PROCESS_EXIT__"); } },
     console: { log: value => logs.push(String(value)) }
   };
