@@ -7,7 +7,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const workflow = fs.readFileSync(".github/workflows/router.yml", "utf8");
-const match = workflow.match(/const rawResponse = fs\.readFileSync\(responsePath, 'utf8'\)[\s\S]*?console\.log\('GAS_PULL_PREFECTURE_PRESENT:'[\s\S]*?\);/);
+const match = workflow.match(/const rawResponse = fs\.readFileSync\(responsePath, 'utf8'\)[\s\S]*?console\.log\('GAS_PULL_PREFECTURE_PRESENT:[\s\S]*?\);/);
 assert.ok(match, "router workflow must contain the GAS capture response handler");
 
 function execute(raw, existingCapture = true) {
