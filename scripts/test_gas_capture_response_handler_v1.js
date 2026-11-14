@@ -21,6 +21,8 @@ function execute(raw, existingCapture = true) {
   const logs = [];
   const sandbox = {
     require,
+    fs,
+    path,
     process: { cwd: () => dir, exit: code => { exitCode = code; throw new Error("__PROCESS_EXIT__"); } },
     console: { log: value => logs.push(String(value)) }
   };
