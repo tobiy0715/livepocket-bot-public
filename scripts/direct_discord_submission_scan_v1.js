@@ -94,7 +94,8 @@ async function runScan(options = {}) {
     return { status: "pending_backlog", queued, scanned, pages };
   }
 
-  const cutoff = Date.now() - LOOKBACK_MS;
+  const savedCutoff = state.scan?.cutoffAt ? Date.parse(state.scan.cutoffAt) : NaN;
+  const cutoff = Number.isFinite(savedCutoff) ? savedCutoff : Date.now() - LOOKBACK_MS;
   while (pages < MAX_PAGES_PER_RUN) {
     let url = "https://discord.com/api/v10/channels/" + CHANNEL_ID + "/messages?limit=" + PAGE_SIZE;
     if (state.scan?.before) url += "&before=" + encodeURIComponent(state.scan.before);
@@ -112,7 +113,7 @@ async function runScan(options = {}) {
       if (!batch.length) break;
       const target = batch.reduce((max, m) => String(m?.id || "") > max ? String(m.id) : max, "");
       if (!/^\d{17,20}$/.test(target)) throw new Error("DISCORD_MESSAGE_ID_INVALID");
-      state.scan = { target, origin: state.cursor, before: "" };
+      state.scan = { target, origin: state.cursor, before: "", cutoffAt: new Date(cutoff).toISOString() };
     }
 
     const eligible = [];
