@@ -57,6 +57,15 @@ const valid = execute(JSON.stringify({
 }));
 assert.equal(valid.exitCode, null);
 assert.equal(valid.saved.url, "https://t.livepocket.jp/e/example");
+const bom = execute("\uFEFF" + JSON.stringify({
+  ok: true,
+  capture: {
+    url: "https://t.livepocket.jp/e/bom",
+    sourceType: "livepocket",
+    capturedAt: "2026-11-14T00:00:00.000Z"
+  }
+}));
+assert.equal(bom.saved.url, "https://t.livepocket.jp/e/bom");
 
 const empty = execute(JSON.stringify({ ok: true, capture: null }));
 assert.equal(empty.exitCode, 0);
