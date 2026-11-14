@@ -289,6 +289,18 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
+      - name: Diagnose GAS Discord scan gate
+        env:
+          GAS_URL_QUEUE_ENABLED_VALUE: ${{ vars.GAS_URL_QUEUE_ENABLED }}
+          GAS_DISCORD_SCAN_ENABLED_VALUE: ${{ vars.GAS_DISCORD_SCAN_ENABLED }}
+        run: |
+          printf 'GAS_URL_QUEUE_ENABLED=%s\\n' "${GAS_URL_QUEUE_ENABLED_VALUE:-<unset>}"
+          printf 'GAS_DISCORD_SCAN_ENABLED=%s\\n' "${GAS_DISCORD_SCAN_ENABLED_VALUE:-<unset>}"
+          if [ "${GAS_URL_QUEUE_ENABLED_VALUE:-}" = "true" ] && [ "${GAS_DISCORD_SCAN_ENABLED_VALUE:-}" = "true" ]; then
+            echo 'GAS_DISCORD_SCAN_GATE=OPEN'
+          else
+            echo 'GAS_DISCORD_SCAN_GATE=CLOSED'
+          fi
       - name: Scan Discord submission channel into GAS queue
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' && vars.GAS_DISCORD_SCAN_ENABLED == 'true' }}
         env:
