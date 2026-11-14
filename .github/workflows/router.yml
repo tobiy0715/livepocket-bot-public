@@ -319,7 +319,7 @@ jobs:
           const path = require('path');
           const responsePath = '/tmp/livepocket_gas_response.json';
           const targetPath = path.join(process.cwd(), 'data', 'livepocket_gas_capture.json');
-          const rawResponse = fs.readFileSync(responsePath, 'utf8').replace(/^\\uFEFF/, '').trim();
+          const rawResponse = fs.readFileSync(responsePath, 'utf8').replace(/^\uFEFF/, '').trim();
           let response;
           try {
             response = JSON.parse(rawResponse);
