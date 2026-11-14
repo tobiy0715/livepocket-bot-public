@@ -15,6 +15,18 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout public workflow source for GAS capture regression test
+        uses: actions/checkout@v4
+        with:
+          path: workflow-source
+      - name: Setup Node for workflow regression test
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test GAS capture response handler
+        working-directory: workflow-source
+        run: |
+          set -e
       - name: Checkout private Router source
         uses: actions/checkout@v4
         with:
@@ -68,6 +80,8 @@ jobs:
           node --check scripts/patch_router_efficiency_24h_v1.js
           node --check scripts/patch_final_event_identity_sanitizer_v1.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
+          node --check scripts/test_gas_capture_response_handler_v1.js
+          node scripts/test_gas_capture_response_handler_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
@@ -305,7 +319,15 @@ jobs:
           const path = require('path');
           const responsePath = '/tmp/livepocket_gas_response.json';
           const targetPath = path.join(process.cwd(), 'data', 'livepocket_gas_capture.json');
-          const response = JSON.parse(fs.readFileSync(responsePath, 'utf8'));
+          const rawResponse = fs.readFileSync(responsePath, 'utf8').replace(/^\uFEFF/, '').trim();
+          let response;
+          try {
+            response = JSON.parse(rawResponse);
+          } catch (error) {
+            if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath);
+            console.log('GAS_PULL: non-JSON response; capture import skipped and stale local capture removed');
+            process.exit(0);
+          }
           if (response.ok !== true) {
             throw new Error('GAS gate returned ok=false: ' + JSON.stringify(response).slice(0, 500));
           }
