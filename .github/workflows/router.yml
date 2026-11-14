@@ -37,6 +37,12 @@ jobs:
           # Consume the verified private Router source from main.
           ref: main
           fetch-depth: 0
+      - name: Restore public scanner source after private checkout
+        uses: actions/checkout@v4
+        with:
+          repository: tobiy0715/livepocket-bot-public
+          ref: main
+          path: workflow-source
       - name: Verify private Router source revision
         run: |
           set -e
