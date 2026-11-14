@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "scripts/gas_discord_scan_client_v1.js"
+      - "scripts/direct_discord_submission_scan_v1.js"
+      - "scripts/test_direct_discord_submission_scan_v1.js"
       - "scripts/test_gas_discord_scan_client_v1.js"
       - "scripts/test_gas_capture_response_handler_v1.js"
       - ".github/workflows/gas-discord-scan-client-tests.yml"
@@ -29,8 +31,12 @@ jobs:
       - name: Syntax checks
         run: |
           node --check scripts/gas_discord_scan_client_v1.js
+          node --check scripts/direct_discord_submission_scan_v1.js
+          node --check scripts/test_direct_discord_submission_scan_v1.js
           node --check scripts/test_gas_discord_scan_client_v1.js
           node --check scripts/test_gas_capture_response_handler_v1.js
+      - name: Run direct Discord submission scan regression
+        run: node scripts/test_direct_discord_submission_scan_v1.js
       - name: Run GAS Discord scan client tests
         run: node scripts/test_gas_discord_scan_client_v1.js
       - name: Run GAS capture response regression
