@@ -68,6 +68,8 @@ jobs:
           node --check scripts/patch_router_efficiency_24h_v1.js
           node --check scripts/patch_final_event_identity_sanitizer_v1.js
           node --check scripts/ingest_livepocket_gas_capture_v1.js
+          node --check scripts/test_gas_capture_response_handler_v1.js
+          node scripts/test_gas_capture_response_handler_v1.js
       - name: Checkout private Router state
         uses: actions/checkout@v4
         with:
