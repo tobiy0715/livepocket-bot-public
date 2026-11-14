@@ -15,6 +15,18 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout public workflow source for GAS capture regression test
+        uses: actions/checkout@v4
+        with:
+          path: workflow-source
+      - name: Setup Node for workflow regression test
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test GAS capture response handler
+        working-directory: workflow-source
+        run: |
+          set -e
       - name: Checkout private Router source
         uses: actions/checkout@v4
         with:
