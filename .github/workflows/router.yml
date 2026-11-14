@@ -27,6 +27,8 @@ jobs:
         working-directory: workflow-source
         run: |
           set -e
+          node --check scripts/direct_discord_submission_scan_v1.js
+          node scripts/test_direct_discord_submission_scan_v1.js
       - name: Checkout private Router source
         uses: actions/checkout@v4
         with:
