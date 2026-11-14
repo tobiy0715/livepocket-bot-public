@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/router.yml"
+      - "scripts/gas_discord_scan_client_v1.js"
+      - "scripts/test_gas_discord_scan_client_v1.js"
       - ".github/workflows/gas-pending-rescue-ci.yml"
 
 permissions:
@@ -15,6 +17,12 @@ jobs:
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v4
+      - name: Validate public GAS Discord scan client
+        run: |
+          set -euo pipefail
+          node --check scripts/gas_discord_scan_client_v1.js
+          node --check scripts/test_gas_discord_scan_client_v1.js
+          node scripts/test_gas_discord_scan_client_v1.js
       - name: Checkout private Router source
         uses: actions/checkout@v4
         with:

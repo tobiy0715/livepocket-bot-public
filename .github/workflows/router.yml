@@ -275,6 +275,16 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/collect_external_sources_v1.js
+      - name: Scan Discord submission channel into GAS queue
+        if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
+        env:
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          node --check scripts/gas_discord_scan_client_v1.js
+          node scripts/gas_discord_scan_client_v1.js
       - name: Import pending LivePocket URLs from GAS queue
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
         env:
