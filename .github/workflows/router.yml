@@ -108,6 +108,10 @@ jobs:
           node --check scripts/gas_field_enrichment_client_v1.js
           node --check scripts/test_gas_field_enrichment_client_v1.js
           node scripts/test_gas_field_enrichment_client_v1.js
+          node --check scripts/gas_pending_rescue_v1.js
+          node --check scripts/patch_gas_pending_rescue_v1.js
+          node --check scripts/test_gas_pending_rescue_v1.js
+          node scripts/test_gas_pending_rescue_v1.js
           node --check bot/index.js
       - name: Apply Router compatibility patches
         run: |
@@ -200,6 +204,8 @@ jobs:
           node scripts/patch_livepocket_multi_url_list_parser_v1.js
           node scripts/patch_router_efficiency_24h_v1.js
           node scripts/patch_livepocket_gas_field_enrichment_v1.js
+          node scripts/patch_gas_pending_rescue_v1.js
+          node scripts/test_gas_pending_rescue_v1.js
           node --check bot/index.js
       - name: Resolve Discord runtime configuration
         env:
