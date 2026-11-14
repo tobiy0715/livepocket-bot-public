@@ -309,8 +309,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: |
           set -euo pipefail
-          node --check scripts/gas_discord_scan_client_v1.js
-          node scripts/gas_discord_scan_client_v1.js
+          node --check workflow-source/scripts/direct_discord_submission_scan_v1.js
+          node workflow-source/scripts/direct_discord_submission_scan_v1.js
       - name: Import pending LivePocket URLs from GAS queue
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
         env:
