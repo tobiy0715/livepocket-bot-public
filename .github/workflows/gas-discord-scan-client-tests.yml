@@ -1,0 +1,32 @@
+name: GAS Discord Scan Client Tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/gas_discord_scan_client_v1.js"
+      - "scripts/test_gas_discord_scan_client_v1.js"
+      - ".github/workflows/gas-discord-scan-client-tests.yml"
+      - ".github/workflows/router.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/gas_discord_scan_client_v1.js"
+      - "scripts/test_gas_discord_scan_client_v1.js"
+      - ".github/workflows/gas-discord-scan-client-tests.yml"
+      - ".github/workflows/router.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax checks
+        run: |
+          node --check scripts/gas_discord_scan_client_v1.js
+          node --check scripts/test_gas_discord_scan_client_v1.js
+      - name: Run GAS Discord scan client tests
+        run: node scripts/test_gas_discord_scan_client_v1.js
