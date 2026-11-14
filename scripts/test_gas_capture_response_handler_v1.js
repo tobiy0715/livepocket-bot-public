@@ -21,13 +21,17 @@ function execute(raw, existingCapture = true) {
   const logs = [];
   const sandbox = {
     require,
-    process: { cwd: () => dir, exit: code => { exitCode = code; } },
+    process: { cwd: () => dir, exit: code => { exitCode = code; throw new Error("__PROCESS_EXIT__"); } },
     console: { log: value => logs.push(String(value)) }
   };
   const handler = match[0]
     .replaceAll("'/tmp/livepocket_gas_response.json'", JSON.stringify(responsePath))
     .replaceAll("path.join(process.cwd(), 'data', 'livepocket_gas_capture.json')", JSON.stringify(targetPath));
-  vm.runInNewContext(handler, sandbox);
+  try {
+    vm.runInNewContext(handler, sandbox);
+  } catch (error) {
+    if (error.message !== "__PROCESS_EXIT__") throw error;
+  }
   const exists = fs.existsSync(targetPath);
   const saved = exists ? JSON.parse(fs.readFileSync(targetPath, "utf8")) : null;
   fs.rmSync(dir, { recursive: true, force: true });
