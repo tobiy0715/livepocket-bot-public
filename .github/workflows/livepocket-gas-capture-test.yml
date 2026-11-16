@@ -32,11 +32,14 @@ jobs:
           CONTENT_TYPE=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {value=$0} END{sub(/^[^:]*:[[:space:]]*/, "", value); sub(/\r$/, "", value); print value}' /tmp/gas-headers.txt)
           echo "GAS_HTTP_STATUS=$HTTP_STATUS"
           echo "GAS_CONTENT_TYPE=${CONTENT_TYPE:-<missing>}"
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "GAS_HTTP_ERROR: endpoint did not return a 2xx response"
+            exit 1
+          fi
           export HTTP_STATUS
           node - <<'NODE'
           const fs = require('fs');
           const raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').replace(/^\uFEFF/, '').trim();
-          const status = Number(process.env.HTTP_STATUS || 0);
           let data;
           try {
             data = JSON.parse(raw);
