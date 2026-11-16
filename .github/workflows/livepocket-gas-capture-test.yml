@@ -35,16 +35,14 @@ jobs:
           fi
           node - <<'NODE'
           const fs = require('fs');
-          const raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').replace(/^\\uFEFF/, '').trim();
+          let raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').trim();
+          if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
           let data;
           try {
             data = JSON.parse(raw);
           } catch {
-            const title = (raw.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i) || [])[1];
-            const textPreview = raw.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/\\s+/g, ' ').trim().slice(0, 1200);
             console.error('GAS_RESPONSE_NOT_JSON');
-            if (title) console.error('HTML_TITLE=' + title.replace(/<[^>]*>/g, '').slice(0, 120));
-            console.error('HTML_TEXT=' + textPreview);
+            console.error('GAS_RESPONSE_PREVIEW=' + raw.slice(0, 1200));
             process.exit(1);
           }
           console.log(JSON.stringify({
