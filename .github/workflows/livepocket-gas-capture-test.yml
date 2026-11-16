@@ -20,21 +20,42 @@ jobs:
     steps:
       - name: Fetch GAS capture
         env:
-          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
         run: |
-          set -e
+          set -euo pipefail
           test -n "$GAS_CAPTURE_URL"
-          curl -fsSL --retry 3 --max-time 30 "$GAS_CAPTURE_URL" -o /tmp/capture.json
+          HTTP_STATUS=$(curl --silent --show-error --location --retry 3 --max-time 30 \
+            --dump-header /tmp/gas-headers.txt \
+            --output /tmp/capture-response.txt \
+            --write-out '%{http_code}' \
+            "$GAS_CAPTURE_URL")
+          CONTENT_TYPE=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {value=$0} END{sub(/^[^:]*:[[:space:]]*/, "", value); sub(/\r$/, "", value); print value}' /tmp/gas-headers.txt)
+          echo "GAS_HTTP_STATUS=$HTTP_STATUS"
+          echo "GAS_CONTENT_TYPE=${CONTENT_TYPE:-<missing>}"
           node - <<'NODE'
           const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('/tmp/capture.json', 'utf8'));
+          const raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').replace(/^\uFEFF/, '').trim();
+          const status = Number(process.env.HTTP_STATUS || 0);
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            const title = (raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1];
+            const preview = raw.replace(/\s+/g, ' ').slice(0, 180);
+            console.error('GAS_RESPONSE_NOT_JSON');
+            if (title) console.error('HTML_TITLE=' + title.replace(/<[^>]*>/g, '').slice(0, 120));
+            console.error('BODY_PREVIEW=' + preview);
+            process.exit(1);
+          }
           console.log(JSON.stringify({
             ok: data.ok,
             status: data.status,
             capture: data.capture || null
           }, null, 2));
-          if (!data.ok) process.exit(1);
+          if (data.ok !== true) process.exit(1);
           NODE
+        env:
+          HTTP_STATUS: ${{ steps.fetch.outputs.http_status }}
 
   safari-capture-regression:
     if: github.event_name == 'pull_request'
