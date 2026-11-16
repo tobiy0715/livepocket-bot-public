@@ -32,6 +32,7 @@ jobs:
           CONTENT_TYPE=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {value=$0} END{sub(/^[^:]*:[[:space:]]*/, "", value); sub(/\r$/, "", value); print value}' /tmp/gas-headers.txt)
           echo "GAS_HTTP_STATUS=$HTTP_STATUS"
           echo "GAS_CONTENT_TYPE=${CONTENT_TYPE:-<missing>}"
+          export HTTP_STATUS
           node - <<'NODE'
           const fs = require('fs');
           const raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').replace(/^\uFEFF/, '').trim();
@@ -54,8 +55,6 @@ jobs:
           }, null, 2));
           if (data.ok !== true) process.exit(1);
           NODE
-        env:
-          HTTP_STATUS: ${{ steps.fetch.outputs.http_status }}
 
   safari-capture-regression:
     if: github.event_name == 'pull_request'
