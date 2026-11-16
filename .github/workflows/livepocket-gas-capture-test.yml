@@ -42,12 +42,12 @@ jobs:
             data = JSON.parse(raw);
           } catch {
             const readable = raw
-              .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')
-              .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')
+              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
               .replace(/<[^>]*>/g, ' ')
               .replace(/&nbsp;|&#160;/gi, ' ')
               .replace(/&amp;/gi, '&')
-              .replace(/\\s+/g, ' ')
+              .replace(/\s+/g, ' ')
               .trim();
             console.error('GAS_RESPONSE_NOT_JSON');
             console.error('GAS_RESPONSE_TEXT=' + readable.slice(0, 4000));
