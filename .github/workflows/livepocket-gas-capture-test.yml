@@ -7,33 +7,58 @@ on:
       - 'scripts/test_livepocket_safari_capture_v5_9.js'
       - '.github/workflows/livepocket-gas-capture-test.yml'
   workflow_dispatch:
-  schedule:
-    - cron: "*/10 * * * *"
 
 permissions:
   contents: read
 
 jobs:
   capture-test:
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Fetch GAS capture
         env:
-          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
+          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
         run: |
-          set -e
+          set -euo pipefail
           test -n "$GAS_CAPTURE_URL"
-          curl -fsSL --retry 3 --max-time 30 "$GAS_CAPTURE_URL" -o /tmp/capture.json
+          HTTP_STATUS=$(curl --silent --show-error --location --retry 3 --max-time 30 \
+            --dump-header /tmp/gas-headers.txt \
+            --output /tmp/capture-response.txt \
+            --write-out '%{http_code}' \
+            "$GAS_CAPTURE_URL")
+          CONTENT_TYPE=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {value=$0} END{sub(/^[^:]*:[[:space:]]*/, "", value); sub(/\r$/, "", value); print value}' /tmp/gas-headers.txt)
+          echo "GAS_HTTP_STATUS=$HTTP_STATUS"
+          echo "GAS_CONTENT_TYPE=${CONTENT_TYPE:-<missing>}"
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "GAS_HTTP_ERROR: endpoint did not return a 2xx response"
+            exit 1
+          fi
           node - <<'NODE'
           const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('/tmp/capture.json', 'utf8'));
+          let raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').trim();
+          if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            const readable = raw
+              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+              .replace(/<[^>]*>/g, ' ')
+              .replace(/&nbsp;|&#160;/gi, ' ')
+              .replace(/&amp;/gi, '&')
+              .replace(/\s+/g, ' ')
+              .trim();
+            console.error('GAS_RESPONSE_NOT_JSON');
+            console.error('GAS_RESPONSE_TEXT=' + readable.slice(0, 4000));
+            process.exit(1);
+          }
           console.log(JSON.stringify({
             ok: data.ok,
             status: data.status,
             capture: data.capture || null
           }, null, 2));
-          if (!data.ok) process.exit(1);
+          if (data.ok !== true) process.exit(1);
           NODE
 
   safari-capture-regression:
