@@ -28,7 +28,7 @@ jobs:
             "$GAS_CAPTURE_URL")
           CONTENT_TYPE=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {value=$0} END{sub(/^[^:]*:[[:space:]]*/, "", value); sub(/\r$/, "", value); print value}' /tmp/gas-headers.txt)
           echo "GAS_HTTP_STATUS=$HTTP_STATUS"
-          echo "GAS_CONTENT_TYPE=\${CONTENT_TYPE:-<missing>}"
+          echo "GAS_CONTENT_TYPE=${CONTENT_TYPE:-<missing>}"
           if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
             echo "GAS_HTTP_ERROR: endpoint did not return a 2xx response"
             exit 1
@@ -42,12 +42,12 @@ jobs:
             data = JSON.parse(raw);
           } catch {
             const readable = raw
-              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+              .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')
+              .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')
               .replace(/<[^>]*>/g, ' ')
               .replace(/&nbsp;|&#160;/gi, ' ')
               .replace(/&amp;/gi, '&')
-              .replace(/\s+/g, ' ')
+              .replace(/\\s+/g, ' ')
               .trim();
             console.error('GAS_RESPONSE_NOT_JSON');
             console.error('GAS_RESPONSE_TEXT=' + readable.slice(0, 4000));
