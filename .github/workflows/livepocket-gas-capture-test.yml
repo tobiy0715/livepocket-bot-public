@@ -7,8 +7,6 @@ on:
       - 'scripts/test_livepocket_safari_capture_v5_9.js'
       - '.github/workflows/livepocket-gas-capture-test.yml'
   workflow_dispatch:
-  schedule:
-    - cron: "*/10 * * * *"
 
 permissions:
   contents: read
@@ -35,16 +33,15 @@ jobs:
             echo "GAS_HTTP_ERROR: endpoint did not return a 2xx response"
             exit 1
           fi
-          export HTTP_STATUS
           node - <<'NODE'
           const fs = require('fs');
-          const raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').replace(/^\uFEFF/, '').trim();
+          const raw = fs.readFileSync('/tmp/capture-response.txt', 'utf8').replace(/^\\uFEFF/, '').trim();
           let data;
           try {
             data = JSON.parse(raw);
           } catch {
-            const title = (raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1];
-            const textPreview = raw.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim().slice(0, 1200);
+            const title = (raw.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i) || [])[1];
+            const textPreview = raw.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/\\s+/g, ' ').trim().slice(0, 1200);
             console.error('GAS_RESPONSE_NOT_JSON');
             if (title) console.error('HTML_TITLE=' + title.replace(/<[^>]*>/g, '').slice(0, 120));
             console.error('HTML_TEXT=' + textPreview);
