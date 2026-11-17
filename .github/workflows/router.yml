@@ -82,6 +82,7 @@ jobs:
           node --check scripts/patch_livepocket_tcg_label_priority_v1.js
           node --check scripts/patch_livepocket_explicit_field_evidence_v1.js
           node --check scripts/patch_livepocket_post_relative_deadline_v1.js
+          node --check scripts/patch_deadline_range_end_extraction_v1.js
           node --check scripts/patch_livepocket_multi_url_list_parser_v1.js
           node --check scripts/patch_lightbulb_superseded_reaction_cleanup_v1.js
           node --check scripts/patch_external_source_card_format_v2.js
@@ -133,6 +134,8 @@ jobs:
           node --check scripts/patch_gas_pending_rescue_v1.js
           node --check scripts/test_gas_pending_rescue_v1.js
           node scripts/test_gas_pending_rescue_v1.js
+          # Apply last so it wraps all earlier extractDeadline overrides.
+          node scripts/patch_deadline_range_end_extraction_v1.js
           node --check bot/index.js
       - name: Apply Router compatibility patches
         run: |
