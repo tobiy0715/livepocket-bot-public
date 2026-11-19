@@ -122,6 +122,28 @@ const { runScan, extractUrls, normalizeLivePocketUrl } = require("./direct_disco
     Date.now = originalNow;
   }
 
+  // A rejected/partial GAS acceptance must not erase discovered URLs.
+  const failureStateFile = path.join(dir, "failure-state.json");
+  await assert.rejects(() => runScan({
+    stateFile: failureStateFile,
+    env: {
+      GAS_CAPTURE_URL: "https://gas.example/exec",
+      GAS_URL_QUEUE_SECRET: "queue-secret",
+      DISCORD_BOT_TOKEN: "discord-token"
+    },
+    fetchImpl: async url => {
+      if (String(url).startsWith("https://discord.com/")) {
+        return { ok: true, status: 200, text: async () => JSON.stringify([
+          { id: "1570000000000000002", timestamp: now, content: "抽選 https://livepocket.jp/e/retry", embeds: [] }
+        ]) };
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify({ ok: true, accepted: 0 }) };
+    }
+  }), /GAS_QUEUE_ACCEPTED_COUNT_MISMATCH/);
+  const failedState = JSON.parse(fs.readFileSync(failureStateFile, "utf8"));
+  assert.equal(failedState.pending.length, 1);
+  assert.equal(failedState.pending[0].url, "https://livepocket.jp/e/retry");
+
   fs.rmSync(dir, { recursive: true, force: true });
   console.log("DIRECT_DISCORD_SUBMISSION_SCAN_V1_TEST: PASS");
 })().catch(error => { console.error(error); process.exitCode = 1; });

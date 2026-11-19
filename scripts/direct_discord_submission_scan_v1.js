@@ -60,16 +60,22 @@ async function requestJson(fetchImpl, url, options) {
   return body;
 }
 
-async function postPending(fetchImpl, endpoint, secret, state) {
+async function postPending(fetchImpl, endpoint, secret, state, stateFile) {
   if (!state.pending.length) return 0;
   const batch = state.pending.slice(0, QUEUE_BATCH_SIZE);
+  // Persist discovered URLs before network I/O so failures can retry safely.
+  writeState(stateFile, state);
   const result = await requestJson(fetchImpl, endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ kind: "url_queue", schemaVersion: 1, secret, items: batch })
   });
   if (result.ok !== true) throw new Error("GAS_QUEUE_REJECTED: " + String(result.error || "unknown"));
+  if (Number(result.accepted) !== batch.length) {
+    throw new Error("GAS_QUEUE_ACCEPTED_COUNT_MISMATCH: expected=" + batch.length + " actual=" + String(result.accepted));
+  }
   state.pending.splice(0, batch.length);
+  writeState(stateFile, state);
   return batch.length;
 }
 
@@ -87,7 +93,7 @@ async function runScan(options = {}) {
 
   const state = readState(stateFile);
   let queued = 0, scanned = 0, pages = 0;
-  queued += await postPending(fetchImpl, endpoint, secret, state);
+  queued += await postPending(fetchImpl, endpoint, secret, state, stateFile);
   if (state.pending.length) {
     writeState(stateFile, state);
     console.log("DISCORD_SUBMISSION_SCAN_V1: pending_backlog=" + state.pending.length + " queued=" + queued);
@@ -135,7 +141,7 @@ async function runScan(options = {}) {
       }
     }
 
-    queued += await postPending(fetchImpl, endpoint, secret, state);
+    queued += await postPending(fetchImpl, endpoint, secret, state, stateFile);
     const oldest = batch.length ? String(batch[batch.length - 1].id) : "";
     const oldestDate = batch.length ? Date.parse(batch[batch.length - 1].timestamp || "") : NaN;
     const needsOlderPage = batch.length === PAGE_SIZE && !crossedCutoff &&
