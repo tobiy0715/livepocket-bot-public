@@ -312,7 +312,7 @@ jobs:
       - name: Scan Discord submission channel into GAS queue
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' && vars.GAS_DISCORD_SCAN_ENABLED == 'true' }}
         env:
-          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
           GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: |
@@ -322,14 +322,14 @@ jobs:
       - name: Import pending LivePocket URLs from GAS queue
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
         env:
-          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
           GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
         run: |
           set -euo pipefail
           node scripts/gas_url_queue_client_v1.js import data
       - name: Fetch latest capture from LivePocket GAS gate
         env:
-          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
         run: |
           set -euo pipefail
           test -n "$GAS_CAPTURE_URL"
@@ -390,7 +390,7 @@ jobs:
       - name: Router Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
           GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
           GAS_FIELD_ENRICHMENT_ENABLED: "true"
           ROUTER_FORCE_LIVEPOCKET_REPARSE_URLS: ebktx,63x1l
@@ -455,7 +455,7 @@ jobs:
       - name: Export Router pending LivePocket URLs to GAS queue
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
         env:
-          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
           GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
         run: |
           set -euo pipefail
@@ -464,7 +464,7 @@ jobs:
       - name: Acknowledge processed LivePocket GAS queue items
         if: ${{ vars.GAS_URL_QUEUE_ENABLED == 'true' }}
         env:
-          GAS_CAPTURE_URL: https://script.google.com/macros/s/AKfycbyxv-FTw97WImeaVzaGKSAUOkxbRLTi1hgS0LhdU_rlS47jSjMXfBaXeIJ1Sw9P1-bc/exec
+          GAS_CAPTURE_URL: ${{ secrets.LP_GATE_URL }}
           GAS_URL_QUEUE_SECRET: ${{ secrets.URL_QUEUE_SECRET_V1 }}
         run: |
           set -euo pipefail
