@@ -1,0 +1,31 @@
+name: Discord submission scanner CI
+
+on:
+  pull_request:
+    paths:
+      - "scripts/direct_discord_submission_scan_v1.js"
+      - "scripts/test_direct_discord_submission_scan_v1.js"
+      - ".github/workflows/scanner-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/direct_discord_submission_scan_v1.js"
+      - "scripts/test_direct_discord_submission_scan_v1.js"
+      - ".github/workflows/scanner-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: node --check scripts/direct_discord_submission_scan_v1.js
+      - name: Scanner regression tests
+        run: node scripts/test_direct_discord_submission_scan_v1.js
