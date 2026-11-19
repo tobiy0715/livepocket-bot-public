@@ -87,6 +87,11 @@ async function runScan(options = {}) {
 
   const state = readState(stateFile);
   let queued = 0, scanned = 0, pages = 0;
+  console.log("DISCORD_SUBMISSION_SCAN_DIAG_V1: channel=" + CHANNEL_ID +
+    " cursor=" + (state.cursor || "(none)") +
+    " cursorTime=" + (state.cursor ? new Date((Number((BigInt(state.cursor) >> 22n) + 1420070400000n))).toISOString() : "(none)") +
+    " scanActive=" + Boolean(state.scan) +
+    " pending=" + state.pending.length);
   queued += await postPending(fetchImpl, endpoint, secret, state);
   if (state.pending.length) {
     writeState(stateFile, state);
@@ -108,6 +113,16 @@ async function runScan(options = {}) {
     if (!Array.isArray(batch)) throw new Error("DISCORD_API_RESPONSE_INVALID");
     pages += 1;
     scanned += batch.length;
+    const newest = batch[0] || null;
+    const oldestMessage = batch[batch.length - 1] || null;
+    console.log("DISCORD_SUBMISSION_SCAN_PAGE_V1: page=" + pages +
+      " returned=" + batch.length +
+      " newestId=" + String(newest?.id || "(none)") +
+      " newestAt=" + String(newest?.timestamp || "(none)") +
+      " oldestId=" + String(oldestMessage?.id || "(none)") +
+      " oldestAt=" + String(oldestMessage?.timestamp || "(none)") +
+      " queryAfter=" + (!state.scan && state.cursor ? state.cursor : "(none)") +
+      " queryBefore=" + (state.scan?.before || "(none)"));
 
     if (!state.scan) {
       if (!batch.length) break;
@@ -126,15 +141,20 @@ async function runScan(options = {}) {
       if ((!state.scan.origin || id > state.scan.origin) && id <= state.scan.target) eligible.push(message);
     }
 
+    let extractedCount = 0;
     const seen = new Set(state.pending.map(x => x.url));
     for (const message of eligible) {
       for (const url of extractUrls(message)) {
+        extractedCount += 1;
         if (seen.has(url)) continue;
         seen.add(url);
         state.pending.push({ messageId: String(message.id), url, prefectureCandidate: "" });
       }
     }
 
+    console.log("DISCORD_SUBMISSION_SCAN_FILTER_V1: eligible=" + eligible.length +
+      " extractedUrls=" + extractedCount +
+      " pendingBeforePost=" + state.pending.length);
     queued += await postPending(fetchImpl, endpoint, secret, state);
     const oldest = batch.length ? String(batch[batch.length - 1].id) : "";
     const oldestDate = batch.length ? Date.parse(batch[batch.length - 1].timestamp || "") : NaN;
