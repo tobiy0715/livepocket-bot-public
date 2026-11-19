@@ -1,8 +1,9 @@
 name: TCG Discord Router Bot
 
 on:
-  # Scheduled dispatch is delegated to the existing GAS time-driven trigger.
-  # Keep workflow_dispatch for manual recovery and testing.
+  # Run the existing Router directly; no GAS dispatch token or time trigger is required.
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 concurrency:
