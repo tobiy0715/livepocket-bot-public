@@ -43,6 +43,45 @@ const { runScan, extractUrls, normalizeLivePocketUrl } = require("./direct_disco
   assert.equal(state.cursor, "1570000000000000001");
   assert.equal(state.scan, null);
 
+  // A rolling 24-hour scan must recover messages older than a stale saved cursor,
+  // and must not enqueue the same URL again on the next scheduled run.
+  const rollingStateFile = path.join(dir, "rolling-state.json");
+  fs.writeFileSync(rollingStateFile, JSON.stringify({
+    schemaVersion: 1,
+    cursor: "1570000000000000999",
+    scan: null,
+    pending: [],
+    seenUrls: {}
+  }));
+  const rollingCalls = [];
+  const rollingMessage = {
+    id: "1570000000000000001",
+    timestamp: new Date().toISOString(),
+    content: "抽選 https://livepocket.jp/e/recovered",
+    embeds: []
+  };
+  const rollingFetch = async (url, options) => {
+    rollingCalls.push({ url, options });
+    if (String(url).startsWith("https://discord.com/")) {
+      return { ok: true, status: 200, text: async () => JSON.stringify([rollingMessage]) };
+    }
+    return { ok: true, status: 200, text: async () => JSON.stringify({ ok: true, status: "queued", accepted: 1 }) };
+  };
+  const rollingFirst = await runScan({
+    stateFile: rollingStateFile,
+    env: { GAS_CAPTURE_URL: "https://gas.example/exec", GAS_URL_QUEUE_SECRET: "queue-secret", DISCORD_BOT_TOKEN: "discord-token" },
+    fetchImpl: rollingFetch
+  });
+  assert.equal(rollingFirst.queued, 1, "a recent URL before the saved cursor must be recovered");
+  assert.ok(!rollingCalls[0].url.includes("&after="), "rolling scan must not be restricted by the saved cursor");
+  const rollingSecond = await runScan({
+    stateFile: rollingStateFile,
+    env: { GAS_CAPTURE_URL: "https://gas.example/exec", GAS_URL_QUEUE_SECRET: "queue-secret", DISCORD_BOT_TOKEN: "discord-token" },
+    fetchImpl: rollingFetch
+  });
+  assert.equal(rollingSecond.queued, 0, "the same URL must not be enqueued again on the next scan");
+  assert.equal(rollingCalls.filter(call => !String(call.url).startsWith("https://discord.com/")).length, 1);
+
   // A multi-run scan must retain its original 24-hour cutoff.
   const resumeStateFile = path.join(dir, "resume-state.json");
   const baseNow = Date.parse("2026-11-15T00:00:00.000Z");
