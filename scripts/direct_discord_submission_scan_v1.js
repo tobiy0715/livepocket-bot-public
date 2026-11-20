@@ -37,10 +37,10 @@ function extractUrls(message) {
 }
 
 function readState(file) {
-  if (!fs.existsSync(file)) return { schemaVersion: 1, cursor: "", scan: null, pending: [] };
+  if (!fs.existsSync(file)) return { schemaVersion: 1, cursor: "", scan: null, pending: [], seenUrls: {} };
   const value = JSON.parse(fs.readFileSync(file, "utf8"));
   if (Number(value?.schemaVersion) !== 1 || !Array.isArray(value.pending)) throw new Error("DISCORD_SCAN_STATE_INVALID");
-  return { schemaVersion: 1, cursor: String(value.cursor || ""), scan: value.scan || null, pending: value.pending };
+  return { schemaVersion: 1, cursor: String(value.cursor || ""), scan: value.scan || null, pending: value.pending, seenUrls: value.seenUrls && typeof value.seenUrls === "object" && !Array.isArray(value.seenUrls) ? value.seenUrls : {} };
 }
 
 function writeState(file, state) {
@@ -101,10 +101,13 @@ async function runScan(options = {}) {
 
   const savedCutoff = state.scan?.cutoffAt ? Date.parse(state.scan.cutoffAt) : NaN;
   const cutoff = Number.isFinite(savedCutoff) ? savedCutoff : Date.now() - LOOKBACK_MS;
+  // Keep only URL dedupe entries from the active 24-hour window.
+  for (const [url, seenAt] of Object.entries(state.seenUrls)) {
+    if (!Number.isFinite(Date.parse(seenAt)) || Date.parse(seenAt) < cutoff) delete state.seenUrls[url];
+  }
   while (pages < MAX_PAGES_PER_RUN) {
     let url = "https://discord.com/api/v10/channels/" + CHANNEL_ID + "/messages?limit=" + PAGE_SIZE;
     if (state.scan?.before) url += "&before=" + encodeURIComponent(state.scan.before);
-    else if (!state.scan && state.cursor) url += "&after=" + encodeURIComponent(state.cursor);
 
     const batch = await requestJson(fetchImpl, url, {
       method: "GET",
@@ -128,7 +131,7 @@ async function runScan(options = {}) {
       if (!batch.length) break;
       const target = batch.reduce((max, m) => String(m?.id || "") > max ? String(m.id) : max, "");
       if (!/^\d{17,20}$/.test(target)) throw new Error("DISCORD_MESSAGE_ID_INVALID");
-      state.scan = { target, origin: state.cursor, before: "", cutoffAt: new Date(cutoff).toISOString() };
+      state.scan = { target, origin: "", before: "", cutoffAt: new Date(cutoff).toISOString() };
     }
 
     const eligible = [];
@@ -138,17 +141,18 @@ async function runScan(options = {}) {
       const created = Date.parse(message?.timestamp || "");
       if (!/^\d{17,20}$/.test(id) || !Number.isFinite(created)) throw new Error("DISCORD_MESSAGE_INVALID");
       if (created < cutoff) { crossedCutoff = true; continue; }
-      if ((!state.scan.origin || id > state.scan.origin) && id <= state.scan.target) eligible.push(message);
+      if (id <= state.scan.target) eligible.push(message);
     }
 
     let extractedCount = 0;
-    const seen = new Set(state.pending.map(x => x.url));
+    const seen = new Set([...state.pending.map(x => x.url), ...Object.keys(state.seenUrls)]);
     for (const message of eligible) {
       for (const url of extractUrls(message)) {
         extractedCount += 1;
         if (seen.has(url)) continue;
         seen.add(url);
         state.pending.push({ messageId: String(message.id), url, prefectureCandidate: "" });
+        state.seenUrls[url] = new Date(Date.parse(message.timestamp)).toISOString();
       }
     }
 
@@ -159,7 +163,7 @@ async function runScan(options = {}) {
     const oldest = batch.length ? String(batch[batch.length - 1].id) : "";
     const oldestDate = batch.length ? Date.parse(batch[batch.length - 1].timestamp || "") : NaN;
     const needsOlderPage = batch.length === PAGE_SIZE && !crossedCutoff &&
-      Number.isFinite(oldestDate) && oldestDate >= cutoff && oldest > state.scan.origin;
+      Number.isFinite(oldestDate) && oldestDate >= cutoff;
     if (needsOlderPage) {
       state.scan.before = oldest;
     } else {
