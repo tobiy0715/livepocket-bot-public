@@ -10,7 +10,35 @@ concurrency:
   queue: max
 
 jobs:
+  dispatch_dedupe_guard:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      proceed: ${{ steps.dedupe.outputs.proceed }}
+    steps:
+      - name: Checkout guard and regression tests
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test dispatch dedupe policy
+        run: node scripts/test_router_dispatch_dedupe_guard_v1.js
+      - name: Skip duplicate dispatch within debounce window
+        id: dedupe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -e
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/router.yml/runs?branch=main&per_page=100" > /tmp/router-runs.json
+          node scripts/router_dispatch_dedupe_guard_v1.js < /tmp/router-runs.json >> "$GITHUB_OUTPUT"
+
   route:
+    needs: dispatch_dedupe_guard
+    if: needs.dispatch_dedupe_guard.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
