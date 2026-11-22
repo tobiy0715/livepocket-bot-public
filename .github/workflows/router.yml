@@ -4,11 +4,6 @@ on:
   # GAS fallback scheduler is the single 5-minute clock; keep manual/API dispatch available.
   workflow_dispatch:
 
-concurrency:
-  group: tcg-main-writer
-  cancel-in-progress: false
-  queue: max
-
 jobs:
   dispatch_dedupe_guard:
     runs-on: ubuntu-latest
@@ -37,6 +32,10 @@ jobs:
           node scripts/router_dispatch_dedupe_guard_v1.js < /tmp/router-runs.json >> "$GITHUB_OUTPUT"
 
   route:
+    concurrency:
+      group: tcg-main-writer
+      cancel-in-progress: false
+      queue: max
     needs: dispatch_dedupe_guard
     if: needs.dispatch_dedupe_guard.outputs.proceed == 'true'
     runs-on: ubuntu-latest
