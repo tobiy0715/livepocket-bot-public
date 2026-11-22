@@ -8,6 +8,8 @@ on:
       - "scripts/test_direct_discord_submission_scan_v1.js"
       - "scripts/test_gas_discord_scan_client_v1.js"
       - "scripts/test_gas_capture_response_handler_v1.js"
+      - "scripts/router_dispatch_dedupe_guard_v1.js"
+      - "scripts/test_router_dispatch_dedupe_guard_v1.js"
       - ".github/workflows/gas-discord-scan-client-tests.yml"
       - ".github/workflows/router.yml"
   push:
@@ -35,9 +37,13 @@ jobs:
           node --check scripts/test_direct_discord_submission_scan_v1.js
           node --check scripts/test_gas_discord_scan_client_v1.js
           node --check scripts/test_gas_capture_response_handler_v1.js
+          node --check scripts/router_dispatch_dedupe_guard_v1.js
+          node --check scripts/test_router_dispatch_dedupe_guard_v1.js
       - name: Run direct Discord submission scan regression
         run: node scripts/test_direct_discord_submission_scan_v1.js
       - name: Run GAS Discord scan client tests
         run: node scripts/test_gas_discord_scan_client_v1.js
       - name: Run GAS capture response regression
         run: node scripts/test_gas_capture_response_handler_v1.js
+      - name: Run Router dispatch dedupe guard tests
+        run: node scripts/test_router_dispatch_dedupe_guard_v1.js
