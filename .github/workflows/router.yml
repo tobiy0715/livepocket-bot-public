@@ -6,6 +6,10 @@ on:
 
 jobs:
   dispatch_dedupe_guard:
+    concurrency:
+      group: tcg-router-dispatch-dedupe-guard
+      cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     permissions:
       actions: read
