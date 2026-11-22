@@ -1,9 +1,7 @@
 name: TCG Discord Router Bot
 
 on:
-  # Run the existing Router directly; no GAS dispatch token or time trigger is required.
-  schedule:
-    - cron: "2-59/5 * * * *"
+  # GAS fallback scheduler is the single 5-minute clock; keep manual/API dispatch available.
   workflow_dispatch:
 
 concurrency:
