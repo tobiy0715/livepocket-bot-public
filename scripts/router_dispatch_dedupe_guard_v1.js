@@ -1,6 +1,6 @@
 "use strict";
 
-const DEBOUNCE_MS = 180 * 1000;
+const DEBOUNCE_MS = 240 * 1000;
 
 function shouldSkipDuplicateDispatch(currentRunNumber, runs, nowMs) {
   const current = Number(currentRunNumber);
